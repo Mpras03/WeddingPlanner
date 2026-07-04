@@ -4,11 +4,13 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { RolesModule } from './roles/roles.module';
 import { UsersModule } from './users/users.module';
 import { UserRolesModule } from './user-roles/user-roles.module';
+import { AuthModule } from './auth/auth.module';
 
 @Module({
   imports: [
   ConfigModule.forRoot({
     isGlobal: true,
+    envFilePath: '.env',
   }),
 
   TypeOrmModule.forRoot({
@@ -27,6 +29,8 @@ import { UserRolesModule } from './user-roles/user-roles.module';
   UsersModule,
 
   UserRolesModule,
+
+  AuthModule,
 ],
   controllers: [],
   providers: [],
