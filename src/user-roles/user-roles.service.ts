@@ -22,6 +22,7 @@ export class UserRolesService {
 
   ) {}
 
+  //=========================== CREATE USER ROLE ======================================
   async create(userId: number, dto: CreateUserRoleDto,): Promise<UserRole> {
   // Cari user
   const user = await this.userRepository.findOne({
@@ -76,5 +77,67 @@ export class UserRolesService {
   });
   return await this.userRoleRepository.save(userRole);
 }
+//========================================================================================
+
+//============================ FIND ROLE BY USER =========================================
+  async findRolesByUser(userId: number) {
+    const user = await this.userRepository.findOne({
+      where: {
+        id: userId,
+      },
+    });
+
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+
+    const userRoles = await this.userRoleRepository.find({
+      where: {
+        user: {
+          id: userId,
+        },
+      },
+      relations: {
+        role: true,
+      },
+      order: {
+        roleName: 'ASC',
+      },
+    });
+
+    return {
+      userId: user.id,
+      username: user.username,
+      name: user.name,
+      roles: userRoles.map((item) => ({
+        id: item.role.id,
+        roleName: item.role.roleName,
+      })),
+    };
+
+  }
+//========================================================================================
+
+//============================ DELETE USER ROLE BY USER ID and ROLE ID =========================================
+  async removeRole(userId: number, roleId: number, ): Promise<void> {
+    const userRole = await this.userRoleRepository.findOne({
+      where: {
+        user: {
+          id: userId,
+        },
+        role: {
+          id: roleId,
+        },
+      },
+    });
+
+    if (!userRole) {
+      throw new NotFoundException(
+        'User role not found',
+      );
+    }
+    await this.userRoleRepository.remove(userRole);
+  }
+//========================================================================================
 
 }
