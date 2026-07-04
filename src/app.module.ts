@@ -3,6 +3,7 @@ import { ConfigModule } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { RolesModule } from './roles/roles.module';
 import { UsersModule } from './users/users.module';
+import { UserRolesModule } from './user-roles/user-roles.module';
 
 @Module({
   imports: [
@@ -24,6 +25,8 @@ import { UsersModule } from './users/users.module';
   RolesModule,
 
   UsersModule,
+
+  UserRolesModule,
 ],
   controllers: [],
   providers: [],
