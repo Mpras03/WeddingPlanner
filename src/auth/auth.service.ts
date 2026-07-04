@@ -3,6 +3,9 @@ import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
 import { UsersService } from '../users/users.service';
 import { LoginDto } from './dto/login.dto';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
+import { UserRole } from '../user-roles/entities/user-role.entity';
 
 @Injectable()
 export class AuthService {
@@ -10,6 +13,9 @@ export class AuthService {
     constructor(
         private readonly usersService: UsersService,
         private readonly jwtService: JwtService,
+
+        @InjectRepository(UserRole)
+        private readonly userRoleRepository: Repository<UserRole>,
     ) {}
 
     //============================== VALIDATE USER ===================================
@@ -51,6 +57,31 @@ export class AuthService {
             username: user.username,
             name: user.name,
             },
+        };
+    }
+    //=======================================================================
+
+    //==================== PROFILE ==============================
+    async profile(userId: number) {
+        const user = await this.usersService.findOne(userId);
+        const roles = await this.userRoleRepository.find({
+            where: {
+                user: {
+                    id: userId,
+                },
+            },
+            relations: {
+                role: true,
+            },
+        });
+        return {
+            id: user.id,
+            username: user.username,
+            name: user.name,
+            roles: roles.map(x => ({
+                id: x.role.id,
+                roleName: x.role.roleName,
+            })),
         };
     }
 }

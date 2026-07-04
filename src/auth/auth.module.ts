@@ -6,11 +6,16 @@ import { UsersModule } from '../users/users.module';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { PassportModule } from '@nestjs/passport';
 import { JwtStrategy } from './strategies/jwt.strategy';
+import { TypeOrmModule } from '@nestjs/typeorm';
+import { UserRole } from '../user-roles/entities/user-role.entity';
 
 @Module({
   imports: [
     UsersModule,
     PassportModule,
+    TypeOrmModule.forFeature([
+        UserRole,
+    ]),
     JwtModule.registerAsync({
       inject: [ConfigService],
       useFactory: (
