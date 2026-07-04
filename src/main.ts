@@ -28,7 +28,15 @@ async function bootstrap() {
     .setTitle('Bulmar API')
     .setDescription('API Documentation Bulmar CMS')
     .setVersion('1.0')
-    .addBearerAuth()
+    .addBearerAuth(
+      {
+        type: 'http',
+        scheme: 'bearer',
+        bearerFormat: 'JWT',
+        description: 'Masukkan JWT Token',
+      },
+      'JWT',
+    )
     .build();
 
   const document = SwaggerModule.createDocument(app, config);

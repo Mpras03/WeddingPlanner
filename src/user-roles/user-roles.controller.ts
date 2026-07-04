@@ -1,9 +1,12 @@
-import { Body, Controller, Param, ParseIntPipe, Post, Get, Delete, HttpCode, HttpStatus} from '@nestjs/common';
-import { ApiOperation, ApiTags,} from '@nestjs/swagger';
+import { Body, Controller, Param, ParseIntPipe, Post, Get, Delete, HttpCode, HttpStatus, UseGuards} from '@nestjs/common';
+import { ApiOperation, ApiTags, ApiBearerAuth} from '@nestjs/swagger';
 import { UserRolesService } from './user-roles.service';
 import { CreateUserRoleDto } from './dto/create-user-role.dto';
+import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 
 @ApiTags('User Roles')
+@ApiBearerAuth('JWT')
+@UseGuards(JwtAuthGuard)
 @Controller('users')
 export class UserRolesController {
 
