@@ -13,7 +13,10 @@ export class RolesController {
     private readonly rolesService: RolesService,
   ) {}
 
-  @Get('get-all')
+  @Get()
+  @ApiOperation({
+    summary: 'Get All Role',
+    })
   async findAll() {
     return await this.rolesService.findAll();
   }
@@ -28,7 +31,10 @@ export class RolesController {
     return this.rolesService.findOne(id);
   }
 
-  @Post('create')
+  @Post()
+  @ApiOperation({
+    summary: 'Create Role',
+    })
     create(
         @Body() dto: CreateRoleDto,
     ){
