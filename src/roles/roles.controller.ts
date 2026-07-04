@@ -1,7 +1,6 @@
-import { Controller, Get, Param, ParseIntPipe } from '@nestjs/common';
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
 import { RolesService } from './roles.service';
-import { Body, Post, Put, Delete } from '@nestjs/common';
+import { Controller, Get, Param, ParseIntPipe, Body, Post, Put, Delete } from '@nestjs/common';
 import { CreateRoleDto } from './dto/create-role.dto';
 import { UpdateRoleDto } from './dto/update-role.dto';
 
