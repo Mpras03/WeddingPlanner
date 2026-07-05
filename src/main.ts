@@ -4,14 +4,14 @@ import { ValidationPipe } from '@nestjs/common';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { ClassSerializerInterceptor } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
+import { ResponseInterceptor } from './common/response/interceptor/response.interceptor';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
   app.useGlobalInterceptors(
-    new ClassSerializerInterceptor(
-        app.get(Reflector),
-    ),
+    new ClassSerializerInterceptor(app.get(Reflector)),
+    new ResponseInterceptor(app.get(Reflector)),
   );
 
   // Global Validation

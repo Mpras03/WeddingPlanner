@@ -3,6 +3,7 @@ import { ApiOperation, ApiTags, ApiBearerAuth} from '@nestjs/swagger';
 import { UserRolesService } from './user-roles.service';
 import { CreateUserRoleDto } from './dto/create-user-role.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { ResponseMessage } from '../common/response/decorators/response-message.decorator';
 
 @ApiTags('User Roles')
 @ApiBearerAuth('JWT')
@@ -15,6 +16,7 @@ export class UserRolesController {
   ) {}
 
   @Post(':userId/roles')
+  @ResponseMessage("Success Assign Role To User")
   @ApiOperation({
     summary: 'Assign Role To User',
   })
@@ -33,6 +35,7 @@ export class UserRolesController {
 
 
   @Get(':userId/roles')
+  @ResponseMessage("Success Get User Roles")
   @ApiOperation({
     summary: 'Get User Roles',
   })
@@ -45,6 +48,7 @@ export class UserRolesController {
 
 
   @Delete(':userId/roles/:roleId')
+  @ResponseMessage("Success Remove Role From User")
   @HttpCode(HttpStatus.NO_CONTENT)
   @ApiOperation({
     summary: 'Remove Role From User',

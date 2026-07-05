@@ -4,10 +4,11 @@ import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { ApiOperation, ApiTags, ApiBearerAuth } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { ResponseMessage } from '../common/response/decorators/response-message.decorator';
 
 @ApiTags('Users')
 @ApiBearerAuth('JWT')
-@UseGuards(JwtAuthGuard)
+// @UseGuards(JwtAuthGuard)
 @Controller('users')
 export class UsersController {
 
@@ -17,6 +18,7 @@ export class UsersController {
 
 
     @Get()
+    @ResponseMessage("Success Get All Users")
     @ApiOperation({
         summary:'Get All Users'
     })
@@ -25,6 +27,7 @@ export class UsersController {
     }
 
     @Get(':id')
+    @ResponseMessage("Success Get User By Id")
     @ApiOperation({
         summary:'Get User By Id'
     })
@@ -36,6 +39,7 @@ export class UsersController {
     }
 
     @Post()
+    @ResponseMessage("Success Create User")
     @ApiOperation({summary: 'Create User',})
     create(
     @Body() dto: CreateUserDto,
@@ -44,6 +48,7 @@ export class UsersController {
     }
 
     @Put(':id')
+    @ResponseMessage("Success Update User")
     @ApiOperation({
     summary: 'Update User',
     })
@@ -55,6 +60,7 @@ export class UsersController {
     }
 
     @Delete(':id')
+    @ResponseMessage("Success Delete User")
     @HttpCode(HttpStatus.NO_CONTENT)
     @ApiOperation({
         summary: 'Delete User',

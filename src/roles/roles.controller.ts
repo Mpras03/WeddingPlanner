@@ -4,6 +4,7 @@ import { Controller, Get, Param, ParseIntPipe, Body, Post, Put, Delete, UseGuard
 import { CreateRoleDto } from './dto/create-role.dto';
 import { UpdateRoleDto } from './dto/update-role.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { ResponseMessage } from '../common/response/decorators/response-message.decorator';
 
 
 @ApiTags('Roles')
@@ -17,6 +18,7 @@ export class RolesController {
   ) {}
 
   @Get()
+  @ResponseMessage("Success Get All Role")
   @ApiOperation({
     summary: 'Get All Role',
     })
@@ -25,6 +27,7 @@ export class RolesController {
   }
 
   @Get(':id')
+  @ResponseMessage("Success Get Role By Id")
     @ApiOperation({
     summary: 'Get Role By Id',
     })
@@ -35,6 +38,7 @@ export class RolesController {
   }
 
   @Post()
+  @ResponseMessage("Success Create Role")
   @ApiOperation({
     summary: 'Create Role',
     })
@@ -45,6 +49,7 @@ export class RolesController {
     }
 
     @Put(':id')
+    @ResponseMessage("Success Update Role")
     @ApiOperation({
         summary: 'Update Role',
         })
@@ -56,6 +61,7 @@ export class RolesController {
         }
 
   @Delete(':id')
+  @ResponseMessage("Success Delete Role")
     @ApiOperation({summary: 'Delete Role',})
     remove(
         @Param('id', ParseIntPipe) id: number,
