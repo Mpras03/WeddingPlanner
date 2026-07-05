@@ -4,6 +4,7 @@ import { AuthService } from './auth.service';
 import { LoginDto } from './dto/login.dto';
 import type { Request } from 'express';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { ResponseMessage } from '../common/response/decorators/response-message.decorator';
 
 @ApiTags('Authentication')
 @Controller('auth')
@@ -15,6 +16,7 @@ export class AuthController {
 
   //===================================== ENDPOINT LOGIN ====================================
   @Post('login')
+  @ResponseMessage("Success Login")
   @ApiOperation({
     summary: 'Login',
   })
@@ -26,8 +28,22 @@ export class AuthController {
   }
   //=========================================================================================
 
+  //===================================== ENDPOINT LOGOUT ====================================
+
+  @Post('logout')
+  @ResponseMessage('Success Logout')
+  @ApiOperation({
+    summary: 'Logout',
+  })
+  logout() {
+    return this.authService.logout();
+  }
+
+  //=========================================================================================
+
   //===================================== GET PROFILE =======================================
   @Get('profile')
+  @ResponseMessage("Success Get Profile")
   @ApiOperation({
     summary: 'Get Profile',
   })
