@@ -1,10 +1,18 @@
 import { UsersService } from './users.service';
-import { Controller, Param, ParseIntPipe, Body, Get, Post, Put, Delete, HttpCode, HttpStatus, UseGuards } from '@nestjs/common';
+import { Controller, Param, ParseIntPipe, Body, Get, Post, Put, Delete, HttpCode, HttpStatus, UseGuards, Query } from '@nestjs/common';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
-import { ApiOperation, ApiTags, ApiBearerAuth } from '@nestjs/swagger';
+import { FindAllUsersDto } from './dto/find-all-users.dto';
+import { ApiTags, ApiBearerAuth } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { ResponseMessage } from '../common/response/decorators/response-message.decorator';
+import {
+  ApiGetAllUsers,
+  ApiGetUserById,
+  ApiCreateUser,
+  ApiUpdateUser,
+  ApiDeleteUser,
+} from './decorators/users-swagger.decorator';
 
 @ApiTags('Users')
 @ApiBearerAuth('JWT')
@@ -19,18 +27,16 @@ export class UsersController {
 
     @Get()
     @ResponseMessage("Success Get All Users")
-    @ApiOperation({
-        summary:'Get All Users'
-    })
-    findAll(){
-        return this.usersService.findAll();
+    @ApiGetAllUsers()
+    findAll(
+        @Query() query: FindAllUsersDto,
+    ){
+        return this.usersService.findAll(query);
     }
 
     @Get(':id')
     @ResponseMessage("Success Get User By Id")
-    @ApiOperation({
-        summary:'Get User By Id'
-    })
+    @ApiGetUserById()
     findOne(
     @Param('id',ParseIntPipe)
     id:number
@@ -40,7 +46,7 @@ export class UsersController {
 
     @Post()
     @ResponseMessage("Success Create User")
-    @ApiOperation({summary: 'Create User',})
+    @ApiCreateUser()
     create(
     @Body() dto: CreateUserDto,
     ) {
@@ -49,9 +55,7 @@ export class UsersController {
 
     @Put(':id')
     @ResponseMessage("Success Update User")
-    @ApiOperation({
-    summary: 'Update User',
-    })
+    @ApiUpdateUser()
     update(
     @Param('id', ParseIntPipe) id: number,
     @Body() dto: UpdateUserDto,
@@ -62,9 +66,7 @@ export class UsersController {
     @Delete(':id')
     @ResponseMessage("Success Delete User")
     @HttpCode(HttpStatus.NO_CONTENT)
-    @ApiOperation({
-        summary: 'Delete User',
-    })
+    @ApiDeleteUser()
     remove(
         @Param('id', ParseIntPipe)
         id: number,

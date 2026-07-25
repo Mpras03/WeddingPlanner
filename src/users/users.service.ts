@@ -1,10 +1,11 @@
 import { Injectable, BadRequestException, NotFoundException, ConflictException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { ILike, Repository } from 'typeorm';
 import { User } from './entities/user.entity';
-import * as bcrypt from 'bcrypt';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
+import { FindAllUsersDto } from './dto/find-all-users.dto';
+import { CryptographyService } from '../cryptography/cryptography.service';
 
 @Injectable()
 export class UsersService {
@@ -12,14 +13,37 @@ export class UsersService {
   constructor(
     @InjectRepository(User)
     private readonly userRepository: Repository<User>,
+    private readonly cryptographyService: CryptographyService,
   ) {}
 
-  async findAll(): Promise<User[]> {
-    return await this.userRepository.find({
-        order:{
-            id:'ASC'
-        }
+  async findAll(query: FindAllUsersDto) {
+    const { filter, pageNumber = 1, pageSize = 10 } = query;
+
+    const [data, totalItems] = await this.userRepository.findAndCount({
+      where: filter
+        ? [
+            { username: ILike(`%${filter}%`) },
+            { name: ILike(`%${filter}%`) },
+          ]
+        : {},
+      order: {
+        id: 'ASC',
+      },
+      skip: (pageNumber - 1) * pageSize,
+      take: pageSize,
     });
+
+    const totalPages = Math.ceil(totalItems / pageSize) || 1;
+
+    return {
+      data: data,
+      meta: {
+        totalItems,
+        totalPages,
+        pageNumber,
+        pageSize,
+      },
+    };
   }
 
   async findOne(id:number):Promise<User>{
@@ -39,11 +63,11 @@ export class UsersService {
   if (existingUser) {
     throw new BadRequestException('Username already exists');
   }
-  const hashedPassword = await bcrypt.hash(dto.password, 10);
+  const encryptedPassword = this.cryptographyService.encrypt(dto.password);
   const user = this.userRepository.create({
     username: dto.username,
     name: dto.name,
-    passwordHash: hashedPassword,
+    passwordHash: encryptedPassword,
     createdAt: new Date(),
     updatedAt: new Date(),
   });
@@ -60,7 +84,14 @@ export class UsersService {
             );
         }
     }
-    Object.assign(user, dto);
+
+    const { password, ...rest } = dto as UpdateUserDto & { password?: string };
+    Object.assign(user, rest);
+
+    if (password) {
+        user.passwordHash = this.cryptographyService.encrypt(password);
+    }
+
     user.updatedAt = new Date();
     return await this.userRepository.save(user);
   }

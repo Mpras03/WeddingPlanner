@@ -1,7 +1,7 @@
 import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
-import * as bcrypt from 'bcrypt';
 import { UsersService } from '../users/users.service';
+import { CryptographyService } from '../cryptography/cryptography.service';
 import { LoginDto } from './dto/login.dto';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
@@ -13,6 +13,7 @@ export class AuthService {
     constructor(
         private readonly usersService: UsersService,
         private readonly jwtService: JwtService,
+        private readonly cryptographyService: CryptographyService,
 
         @InjectRepository(UserRole)
         private readonly userRoleRepository: Repository<UserRole>,
@@ -27,10 +28,8 @@ export class AuthService {
             );
         }
 
-        const isPasswordValid = await bcrypt.compare(
-            loginDto.password,
-            user.passwordHash,
-        );
+        const decryptedPassword = this.cryptographyService.decrypt(user.passwordHash);
+        const isPasswordValid = decryptedPassword === loginDto.password;
 
         if (!isPasswordValid) {
             throw new UnauthorizedException(
