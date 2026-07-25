@@ -16,7 +16,7 @@ import {
 
 @ApiTags('Users')
 @ApiBearerAuth('JWT')
-// @UseGuards(JwtAuthGuard)
+@UseGuards(JwtAuthGuard)
 @Controller('users')
 export class UsersController {
 
