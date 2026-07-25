@@ -1,25 +1,57 @@
-import { Body, Controller, Param, ParseIntPipe, Post, Get, Delete, HttpCode, HttpStatus, UseGuards} from '@nestjs/common';
-import { ApiOperation, ApiTags, ApiBearerAuth} from '@nestjs/swagger';
+import { Body, Controller, Param, ParseIntPipe, Post, Get, Put, Delete, HttpCode, HttpStatus, UseGuards, Query } from '@nestjs/common';
+import { ApiTags, ApiBearerAuth } from '@nestjs/swagger';
 import { UserRolesService } from './user-roles.service';
 import { CreateUserRoleDto } from './dto/create-user-role.dto';
+import { UpdateUserRoleDto } from './dto/update-user-role.dto';
+import { FindAllUserRolesDto } from './dto/find-all-user-roles.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { ResponseMessage } from '../common/response/decorators/response-message.decorator';
+import {
+  ApiGetAllUserRoles,
+  ApiAssignRoleToUser,
+  ApiGetUserRoles,
+  ApiUpdateUserRole,
+  ApiRemoveRoleFromUser,
+} from './decorators/user-roles-swagger.decorator';
 
 @ApiTags('User Roles')
 @ApiBearerAuth('JWT')
-// @UseGuards(JwtAuthGuard)
-@Controller('users')
+@UseGuards(JwtAuthGuard)
+@Controller('user-roles')
 export class UserRolesController {
 
   constructor(
     private readonly userRolesService: UserRolesService,
   ) {}
 
-  @Post(':userId/roles')
+  @Get()
+  @HttpCode(HttpStatus.OK)
+  @ResponseMessage("Success Get All User Roles")
+  @ApiGetAllUserRoles()
+  findAll(
+    @Query()
+    query: FindAllUserRolesDto,
+  ) {
+    return this.userRolesService.findAll(query);
+  }
+
+  @Put(':id')
+  @ResponseMessage("Success Update User Role")
+  @ApiUpdateUserRole()
+  update(
+    @Param('id', ParseIntPipe)
+    id: number,
+
+    @Body()
+    dto: UpdateUserRoleDto,
+  ) {
+    return this.userRolesService.update(id, dto);
+  }
+
+  @Post(':userId')
+  @HttpCode(HttpStatus.OK)
   @ResponseMessage("Success Assign Role To User")
-  @ApiOperation({
-    summary: 'Assign Role To User',
-  })
+  @ApiAssignRoleToUser()
   create(
     @Param('userId', ParseIntPipe)
     userId: number,
@@ -34,11 +66,10 @@ export class UserRolesController {
   }
 
 
-  @Get(':userId/roles')
+  @Get(':userId')
+  @HttpCode(HttpStatus.OK)
   @ResponseMessage("Success Get User Roles")
-  @ApiOperation({
-    summary: 'Get User Roles',
-  })
+  @ApiGetUserRoles()
   findRolesByUser(
     @Param('userId', ParseIntPipe)
     userId: number,
@@ -47,12 +78,10 @@ export class UserRolesController {
   }
 
 
-  @Delete(':userId/roles/:roleId')
+  @Delete(':userId/:roleId')
   @ResponseMessage("Success Remove Role From User")
   @HttpCode(HttpStatus.NO_CONTENT)
-  @ApiOperation({
-    summary: 'Remove Role From User',
-  })
+  @ApiRemoveRoleFromUser()
   removeRole(
     @Param('userId', ParseIntPipe)
     userId: number,
