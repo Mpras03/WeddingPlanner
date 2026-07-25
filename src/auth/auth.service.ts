@@ -28,10 +28,27 @@ export class AuthService {
             );
         }
 
-        const decryptedPassword = this.cryptographyService.decrypt(user.passwordHash);
-        const isPasswordValid = decryptedPassword === loginDto.password;
+        // decrypt password yang dikirim client (cipherText -> plainText)
+        let incomingPassword: string;
+        try {
+            incomingPassword = this.cryptographyService.decrypt(loginDto.password);
+        } catch {
+            throw new UnauthorizedException(
+            'Username atau password salah',
+            );
+        }
 
-        if (!isPasswordValid) {
+        // decrypt password yang tersimpan di database
+        let storedPassword: string;
+        try {
+            storedPassword = this.cryptographyService.decrypt(user.passwordHash);
+        } catch {
+            throw new UnauthorizedException(
+            'Username atau password salah',
+            );
+        }
+
+        if (incomingPassword !== storedPassword) {
             throw new UnauthorizedException(
             'Username atau password salah',
             );
@@ -49,6 +66,9 @@ export class AuthService {
             username: user.username,
             name: user.name,
         };
+
+        const { roles, listRoles } = await this.getUserRoles(user.id);
+
         return {
             access_token: await this.jwtService.signAsync(payload),
             user: {
@@ -56,6 +76,8 @@ export class AuthService {
             username: user.username,
             name: user.name,
             },
+            roles,
+            listRoles,
         };
     }
     //=======================================================================
@@ -69,7 +91,21 @@ export class AuthService {
     //==================== PROFILE ==============================
     async profile(userId: number) {
         const user = await this.usersService.findOne(userId);
-        const roles = await this.userRoleRepository.find({
+        const { roles, listRoles } = await this.getUserRoles(userId);
+
+        return {
+            id: user.id,
+            username: user.username,
+            name: user.name,
+            roles,
+            listRoles,
+        };
+    }
+    //=======================================================================
+
+    //==================== GET USER ROLES (roles primary + listRoles) ==============================
+    private async getUserRoles(userId: number) {
+        const userRoles = await this.userRoleRepository.find({
             where: {
                 user: {
                     id: userId,
@@ -79,14 +115,18 @@ export class AuthService {
                 role: true,
             },
         });
-        return {
-            id: user.id,
-            username: user.username,
-            name: user.name,
-            roles: roles.map(x => ({
-                id: x.role.id,
-                roleName: x.role.roleName,
-            })),
-        };
+
+        const listRoles = userRoles.map(x => ({
+            id: x.role.id,
+            roleName: x.role.roleName,
+        }));
+
+        const primary = userRoles.find(x => x.isPrimary);
+        const roles = primary
+            ? { id: primary.role.id, roleName: primary.role.roleName }
+            : null;
+
+        return { roles, listRoles };
     }
+    //=======================================================================
 }

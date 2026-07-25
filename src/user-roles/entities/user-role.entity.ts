@@ -65,4 +65,9 @@ export class UserRole {
   })
   updatedAt?: Date;
 
+  @Column({
+    name: 'is_primary',
+  })
+  isPrimary: boolean;
+
 }

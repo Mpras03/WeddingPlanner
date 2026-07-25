@@ -112,6 +112,7 @@ export class UserRolesService {
       roles: userRoles.map((item) => ({
         id: item.role.id,
         roleName: item.role.roleName,
+        isPrimary: item.isPrimary,
       })),
     };
 

@@ -10,13 +10,19 @@ import { LoginDto } from '../dto/login.dto';
 
 export function ApiLogin() {
   return applyDecorators(
-    ApiOperation({ summary: 'Login' }),
+    ApiOperation({
+      summary: 'Login',
+      description: 'Field "password" harus dikirim dalam bentuk cipherText hasil dari POST /cryptography/encrypt',
+    }),
     ApiBody({
       type: LoginDto,
       examples: {
         example1: {
           summary: 'Contoh request login',
-          value: { username: 'johndoe', password: 'MySecretPassword123' },
+          value: {
+            username: 'johndoe',
+            password: 'gk2mQY3f8h1sJd0aB9xLZQ==:8sM3nQpV1cKzT7hD2wRfXg==',
+          },
         },
       },
     }),
@@ -33,6 +39,14 @@ export function ApiLogin() {
               username: 'johndoe',
               name: 'John Doe',
             },
+            roles: {
+              id: 1,
+              roleName: 'Admin',
+            },
+            listRoles: [
+              { id: 1, roleName: 'Admin' },
+              { id: 2, roleName: 'Staff' },
+            ],
           },
         },
       },
@@ -71,8 +85,13 @@ export function ApiProfile() {
             id: 1,
             username: 'johndoe',
             name: 'John Doe',
-            roles: [
+            roles: {
+              id: 1,
+              roleName: 'Admin',
+            },
+            listRoles: [
               { id: 1, roleName: 'Admin' },
+              { id: 2, roleName: 'Staff' },
             ],
           },
         },

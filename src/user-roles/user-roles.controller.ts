@@ -7,7 +7,7 @@ import { ResponseMessage } from '../common/response/decorators/response-message.
 
 @ApiTags('User Roles')
 @ApiBearerAuth('JWT')
-@UseGuards(JwtAuthGuard)
+// @UseGuards(JwtAuthGuard)
 @Controller('users')
 export class UserRolesController {
 

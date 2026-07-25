@@ -36,7 +36,7 @@ export class UsersService {
     const totalPages = Math.ceil(totalItems / pageSize) || 1;
 
     return {
-      data: data,
+      items: data,
       meta: {
         totalItems,
         totalPages,
@@ -53,19 +53,20 @@ export class UsersService {
   async findByUsername(username: string): Promise<User | null> {
   return await this.userRepository.findOne({
     where: {
-      username,
+      username: username.toLowerCase(),
     },
   });
   }
 
   async create(dto: CreateUserDto): Promise<User> {
-  const existingUser = await this.findByUsername(dto.username);
+  const normalizedUsername = dto.username.toLowerCase();
+  const existingUser = await this.findByUsername(normalizedUsername);
   if (existingUser) {
     throw new BadRequestException('Username already exists');
   }
   const encryptedPassword = this.cryptographyService.encrypt(dto.password);
   const user = this.userRepository.create({
-    username: dto.username,
+    username: normalizedUsername,
     name: dto.name,
     passwordHash: encryptedPassword,
     createdAt: new Date(),
@@ -76,8 +77,10 @@ export class UsersService {
 
   async update(id: number, dto: UpdateUserDto,): Promise<User> {
     const user = await this.getUserOrThrow(id);
-    if (dto.username && dto.username !== user.username) {
-        const existing = await this.findByUsername(dto.username);
+    const normalizedUsername = dto.username ? dto.username.toLowerCase() : undefined;
+
+    if (normalizedUsername && normalizedUsername !== user.username) {
+        const existing = await this.findByUsername(normalizedUsername);
         if (existing) {
             throw new ConflictException(
                 'Username already exists',
@@ -85,8 +88,12 @@ export class UsersService {
         }
     }
 
-    const { password, ...rest } = dto as UpdateUserDto & { password?: string };
+    const { password, username, ...rest } = dto as UpdateUserDto & { password?: string };
     Object.assign(user, rest);
+
+    if (normalizedUsername) {
+        user.username = normalizedUsername;
+    }
 
     if (password) {
         user.passwordHash = this.cryptographyService.encrypt(password);
