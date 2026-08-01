@@ -5,7 +5,7 @@ import { CreateUserRoleDto } from './dto/create-user-role.dto';
 import { UpdateUserRoleDto } from './dto/update-user-role.dto';
 import { FindAllUserRolesDto } from './dto/find-all-user-roles.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
-import { ResponseMessage } from '../common/response/decorators/response-message.decorator';
+import { ResponseMessage } from '../../../common/response/decorators/response-message.decorator';
 import {
   ApiGetAllUserRoles,
   ApiAssignRoleToUser,

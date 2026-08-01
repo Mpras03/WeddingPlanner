@@ -1,10 +1,18 @@
-import { ApiOperation, ApiTags, ApiBearerAuth } from '@nestjs/swagger';
+import { ApiTags, ApiBearerAuth } from '@nestjs/swagger';
 import { RolesService } from './roles.service';
-import { Controller, Get, Param, ParseIntPipe, Body, Post, Put, Delete, UseGuards } from '@nestjs/common';
+import { Controller, Get, Param, ParseIntPipe, Body, Post, Put, Delete, UseGuards, Query } from '@nestjs/common';
 import { CreateRoleDto } from './dto/create-role.dto';
 import { UpdateRoleDto } from './dto/update-role.dto';
+import { FindAllRoleDto } from './dto/find-all-role.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
-import { ResponseMessage } from '../common/response/decorators/response-message.decorator';
+import { ResponseMessage } from '../../../common/response/decorators/response-message.decorator';
+import {
+  ApiFindAllRole,
+  ApiFindOneRole,
+  ApiCreateRole,
+  ApiUpdateRole,
+  ApiDeleteRole,
+} from './decorators/roles-swagger.decorator';
 
 
 @ApiTags('Roles')
@@ -19,19 +27,15 @@ export class RolesController {
 
   @Get()
   @ResponseMessage("Success Get All Role")
-  @ApiOperation({
-    summary: 'Get All Role',
-    })
-  async findAll() {
-    return await this.rolesService.findAll();
+  @ApiFindAllRole()
+  async findAll(@Query() query: FindAllRoleDto) {
+    return await this.rolesService.findAll(query);
   }
 
   @Get(':id')
   @ResponseMessage("Success Get Role By Id")
-    @ApiOperation({
-    summary: 'Get Role By Id',
-    })
-    findOne(
+  @ApiFindOneRole()
+  findOne(
     @Param('id', ParseIntPipe) id: number,
     ) {
     return this.rolesService.findOne(id);
@@ -39,9 +43,7 @@ export class RolesController {
 
   @Post()
   @ResponseMessage("Success Create Role")
-  @ApiOperation({
-    summary: 'Create Role',
-    })
+  @ApiCreateRole()
     create(
         @Body() dto: CreateRoleDto,
     ){
@@ -50,9 +52,7 @@ export class RolesController {
 
     @Put(':id')
     @ResponseMessage("Success Update Role")
-    @ApiOperation({
-        summary: 'Update Role',
-        })
+    @ApiUpdateRole()
     update(
         @Param('id', ParseIntPipe) id: number,
         @Body() dto: UpdateRoleDto,
@@ -62,7 +62,7 @@ export class RolesController {
 
   @Delete(':id')
   @ResponseMessage("Success Delete Role")
-    @ApiOperation({summary: 'Delete Role',})
+  @ApiDeleteRole()
     remove(
         @Param('id', ParseIntPipe) id: number,
         ) {

@@ -5,7 +5,7 @@ import { UpdateUserDto } from './dto/update-user.dto';
 import { FindAllUsersDto } from './dto/find-all-users.dto';
 import { ApiTags, ApiBearerAuth } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
-import { ResponseMessage } from '../common/response/decorators/response-message.decorator';
+import { ResponseMessage } from '../../../common/response/decorators/response-message.decorator';
 import {
   ApiGetAllUsers,
   ApiGetUserById,

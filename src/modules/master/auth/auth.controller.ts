@@ -3,8 +3,8 @@ import { ApiTags } from '@nestjs/swagger';
 import { AuthService } from './auth.service';
 import { LoginDto } from './dto/login.dto';
 import type { Request } from 'express';
-import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
-import { ResponseMessage } from '../common/response/decorators/response-message.decorator';
+import { JwtAuthGuard } from './guards/jwt-auth.guard';
+import { ResponseMessage } from '../../../common/response/decorators/response-message.decorator';
 import { ApiLogin, ApiLogout, ApiProfile } from './decorators/auth-swagger.decorator';
 
 @ApiTags('Authentication')

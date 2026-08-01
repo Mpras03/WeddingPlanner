@@ -3,7 +3,7 @@ import { ApiTags } from '@nestjs/swagger';
 import { CryptographyService } from './cryptography.service';
 import { EncryptDataDto } from './dto/encrypt-data.dto';
 import { DecryptDataDto } from './dto/decrypt-data.dto';
-import { ResponseMessage } from '../common/response/decorators/response-message.decorator';
+import { ResponseMessage } from '../../../common/response/decorators/response-message.decorator';
 import { ApiEncryptData, ApiDecryptData } from './decorators/cryptography-swagger.decorator';
 
 @ApiTags('Cryptography')

@@ -36,7 +36,7 @@ export class UsersService {
     const totalPages = Math.ceil(totalItems / pageSize) || 1;
 
     return {
-      items: data,
+      data: data,
       meta: {
         totalItems,
         totalPages,

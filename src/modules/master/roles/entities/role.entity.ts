@@ -4,48 +4,52 @@ import {
   PrimaryGeneratedColumn,
 } from 'typeorm';
 
-@Entity('Roles')
+@Entity({ name: 'roles', schema: 'master' })
 export class Role {
 
   @PrimaryGeneratedColumn('increment')
   id: number;
 
   @Column({
-    name: 'role_name'
+    name: 'role_name',
+    length: 100,
   })
   roleName: string;
 
   @Column({
-    nullable: true
+    type: 'text',
+    nullable: true,
   })
   description: string;
 
   @Column({
-    nullable: true
+    default: false,
   })
   active: boolean;
 
   @Column({
     name: 'created_by',
-    nullable: true
+    length: 100,
+    nullable: true,
   })
   createdBy: string;
 
   @Column({
     name: 'created_at',
-    nullable: true
+    nullable: true,
   })
   createdAt: Date;
 
   @Column({
     name: 'updated_by',
-    nullable: true
+    length: 100,
+    nullable: true,
   })
   updatedBy: string;
 
   @Column({
     name: 'updated_at',
-    nullable: true
+    nullable: true,
   })
   updatedAt: Date;
 }

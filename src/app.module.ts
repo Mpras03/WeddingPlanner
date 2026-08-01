@@ -1,11 +1,11 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { RolesModule } from './roles/roles.module';
-import { UsersModule } from './users/users.module';
-import { UserRolesModule } from './user-roles/user-roles.module';
-import { AuthModule } from './auth/auth.module';
-import { CryptographyModule } from './cryptography/cryptography.module';
+import { RolesModule } from './modules/master/roles/roles.module';
+import { UsersModule } from './modules/master/users/users.module';
+import { UserRolesModule } from './modules/master/user-roles/user-roles.module';
+import { AuthModule } from './modules/master/auth/auth.module';
+import { CryptographyModule } from './modules/master/cryptography/cryptography.module';
 
 @Module({
   imports: [
