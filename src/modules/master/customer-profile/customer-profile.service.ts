@@ -1,7 +1,7 @@
 import { ConflictException, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { ILike, Repository } from 'typeorm';
-import { CustomerProfile } from './entity/customer-profile.entity';
+import { CustomerProfile } from './entities/customer-profile.entity';
 import { User } from '../users/entities/user.entity';
 import { CreateCustomerProfileDto } from './dto/create-customer-profile.dto';
 import { UpdateCustomerProfileDto } from './dto/update-customer-profile.dto';

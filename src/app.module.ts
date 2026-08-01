@@ -7,6 +7,7 @@ import { UserRolesModule } from './modules/master/user-roles/user-roles.module';
 import { AuthModule } from './modules/master/auth/auth.module';
 import { CryptographyModule } from './modules/master/cryptography/cryptography.module';
 import { CustomerProfileModule } from './modules/master/customer-profile/customer-profile.module';
+import { VendorProfileModule } from './modules/master/vendor-profile/vendor-profile.module';
 
 @Module({
   imports: [
@@ -37,6 +38,8 @@ import { CustomerProfileModule } from './modules/master/customer-profile/custome
   CryptographyModule,
 
   CustomerProfileModule,
+
+  VendorProfileModule,
 ],
   controllers: [],
   providers: [],

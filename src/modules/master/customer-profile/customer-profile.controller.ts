@@ -28,8 +28,8 @@ import {
 } from './decorators/customer-profile-swagger.decorator';
 
 @ApiTags('Customer Profile')
-// @ApiBearerAuth('JWT')
-// @UseGuards(JwtAuthGuard)
+@ApiBearerAuth('JWT')
+@UseGuards(JwtAuthGuard)
 @Controller('customer-profile')
 export class CustomerProfileController {
 
