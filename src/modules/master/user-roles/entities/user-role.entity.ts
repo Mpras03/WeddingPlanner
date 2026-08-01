@@ -9,7 +9,7 @@ import {
 import { User } from '../../users/entities/user.entity';
 import { Role } from '../../roles/entities/role.entity';
 
-@Entity('User_Roles')
+@Entity({ name: 'user_roles', schema: 'master' })
 export class UserRole {
 
   @PrimaryGeneratedColumn()
@@ -21,11 +21,6 @@ export class UserRole {
   })
   user: User;
 
-  @Column({
-    name: 'user_name',
-  })
-  userName: string;
-
   @ManyToOne(() => Role)
   @JoinColumn({
     name: 'role_id',
@@ -33,28 +28,27 @@ export class UserRole {
   role: Role;
 
   @Column({
-    name: 'role_name',
-  })
-  roleName: string;
-
-  @Column({
+    type: 'text',
     nullable: true,
   })
   description?: string;
 
   @Column({
     name: 'created_by',
+    length: 100,
     nullable: true,
   })
   createdBy?: string;
 
   @Column({
     name: 'created_at',
+    nullable: true,
   })
   createdAt: Date;
 
   @Column({
     name: 'updated_by',
+    length: 100,
     nullable: true,
   })
   updatedBy?: string;
@@ -67,6 +61,7 @@ export class UserRole {
 
   @Column({
     name: 'is_primary',
+    default: false,
   })
   isPrimary: boolean;
 

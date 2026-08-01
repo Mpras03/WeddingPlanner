@@ -21,10 +21,10 @@ export class AuthService {
 
     //============================== VALIDATE USER ===================================
     async validateUser(loginDto: LoginDto) {
-        const user = await this.usersService.findByUsername(loginDto.username);
+        const user = await this.usersService.findByEmail(loginDto.email);
         if (!user) {
             throw new UnauthorizedException(
-            'Username atau password salah',
+            'Email atau password salah',
             );
         }
 
@@ -34,7 +34,7 @@ export class AuthService {
             incomingPassword = this.cryptographyService.decrypt(loginDto.password);
         } catch {
             throw new UnauthorizedException(
-            'Username atau password salah',
+            'Email atau password salah',
             );
         }
 
@@ -44,13 +44,13 @@ export class AuthService {
             storedPassword = this.cryptographyService.decrypt(user.passwordHash);
         } catch {
             throw new UnauthorizedException(
-            'Username atau password salah',
+            'Email atau password salah',
             );
         }
 
         if (incomingPassword !== storedPassword) {
             throw new UnauthorizedException(
-            'Username atau password salah',
+            'Email atau password salah',
             );
         }
 
@@ -63,8 +63,8 @@ export class AuthService {
         const user = await this.validateUser(loginDto);
         const payload = {
             sub: user.id,
-            username: user.username,
-            name: user.name,
+            email: user.email,
+            fullname: user.fullname,
         };
 
         const { roles, listRoles } = await this.getUserRoles(user.id);
@@ -73,8 +73,8 @@ export class AuthService {
             access_token: await this.jwtService.signAsync(payload),
             user: {
             id: user.id,
-            username: user.username,
-            name: user.name,
+            email: user.email,
+            fullname: user.fullname,
             },
             roles,
             listRoles,
@@ -95,8 +95,8 @@ export class AuthService {
 
         return {
             id: user.id,
-            username: user.username,
-            name: user.name,
+            email: user.email,
+            fullname: user.fullname,
             roles,
             listRoles,
         };

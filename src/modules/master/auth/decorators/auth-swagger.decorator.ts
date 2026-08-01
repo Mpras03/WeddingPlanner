@@ -20,7 +20,7 @@ export function ApiLogin() {
         example1: {
           summary: 'Contoh request login',
           value: {
-            username: 'johndoe',
+            email: 'johndoe@example.com',
             password: 'gk2mQY3f8h1sJd0aB9xLZQ==:8sM3nQpV1cKzT7hD2wRfXg==',
           },
         },
@@ -33,11 +33,11 @@ export function ApiLogin() {
           statusCode: 200,
           message: 'Success Login',
           data: {
-            access_token: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOjEsInVzZXJuYW1lIjoiam9obmRvZSJ9.abc123signature',
+            access_token: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOjEsImVtYWlsIjoiam9obmRvZUBleGFtcGxlLmNvbSJ9.abc123signature',
             user: {
               id: 1,
-              username: 'johndoe',
-              name: 'John Doe',
+              email: 'johndoe@example.com',
+              fullname: 'John Doe',
             },
             roles: {
               id: 1,
@@ -51,7 +51,16 @@ export function ApiLogin() {
         },
       },
     }),
-    ApiUnauthorizedResponse({ description: 'Username atau password salah' }),
+    ApiUnauthorizedResponse({
+      description: 'Email atau password salah',
+      schema: {
+        example: {
+          statusCode: 401,
+          message: 'Email atau password salah',
+          error: 'Unauthorized',
+        },
+      },
+    }),
   );
 }
 
@@ -83,8 +92,8 @@ export function ApiProfile() {
           message: 'Success Get Profile',
           data: {
             id: 1,
-            username: 'johndoe',
-            name: 'John Doe',
+            email: 'johndoe@example.com',
+            fullname: 'John Doe',
             roles: {
               id: 1,
               roleName: 'Admin',
@@ -97,6 +106,15 @@ export function ApiProfile() {
         },
       },
     }),
-    ApiUnauthorizedResponse({ description: 'Token tidak valid atau tidak ada' }),
+    ApiUnauthorizedResponse({
+      description: 'Token tidak valid atau tidak ada',
+      schema: {
+        example: {
+          statusCode: 401,
+          message: 'Unauthorized',
+          error: 'Unauthorized',
+        },
+      },
+    }),
   );
 }

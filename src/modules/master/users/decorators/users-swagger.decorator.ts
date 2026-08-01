@@ -5,6 +5,7 @@ import {
   ApiCreatedResponse,
   ApiNoContentResponse,
   ApiNotFoundResponse,
+  ApiConflictResponse,
   ApiQuery,
 } from '@nestjs/swagger';
 
@@ -15,7 +16,7 @@ export function ApiGetAllUsers() {
       name: 'filter',
       required: false,
       type: String,
-      description: 'Filter berdasarkan username atau name',
+      description: 'Filter berdasarkan fullname atau email',
       example: '',
     }),
     ApiQuery({
@@ -39,21 +40,25 @@ export function ApiGetAllUsers() {
           statusCode: 200,
           message: 'Success Get All Users',
           data: {
-            items: [
+            data: [
               {
                 id: 1,
-                username: 'johndoe',
-                name: 'John Doe',
-                createdAt: '2026-07-20T08:00:00.000Z',
-                updatedAt: '2026-07-20T08:00:00.000Z',
+                fullname: 'John Doe',
+                email: 'johndoe@example.com',
+                phoneNumber: '081234567890',
+                isEmailVerified: false,
+                isPhoneVerified: false,
+                active: true,
+                createdBy: null,
+                createdAt: '2026-08-01T08:00:00.000Z',
+                modifiedBy: null,
+                modifiedAt: null,
+                lastLoginAt: null,
               },
             ],
-            meta: {
-              totalItems: 25,
-              totalPages: 3,
-              pageNumber: 1,
-              pageSize: 10,
-            },
+            total: 1,
+            pageNumber: 1,
+            pageSize: 10,
           },
         },
       },
@@ -72,15 +77,31 @@ export function ApiGetUserById() {
           message: 'Success Get User By Id',
           data: {
             id: 1,
-            username: 'johndoe',
-            name: 'John Doe',
-            createdAt: '2026-07-20T08:00:00.000Z',
-            updatedAt: '2026-07-20T08:00:00.000Z',
+            fullname: 'John Doe',
+            email: 'johndoe@example.com',
+            phoneNumber: '081234567890',
+            isEmailVerified: false,
+            isPhoneVerified: false,
+            active: true,
+            createdBy: null,
+            createdAt: '2026-08-01T08:00:00.000Z',
+            modifiedBy: null,
+            modifiedAt: null,
+            lastLoginAt: null,
           },
         },
       },
     }),
-    ApiNotFoundResponse({ description: 'User tidak ditemukan' }),
+    ApiNotFoundResponse({
+      description: 'User tidak ditemukan',
+      schema: {
+        example: {
+          statusCode: 404,
+          message: 'User not found',
+          error: 'Not Found',
+        },
+      },
+    }),
   );
 }
 
@@ -95,11 +116,28 @@ export function ApiCreateUser() {
           message: 'Success Create User',
           data: {
             id: 2,
-            username: 'janedoe',
-            name: 'Jane Doe',
-            createdAt: '2026-07-25T10:00:00.000Z',
-            updatedAt: '2026-07-25T10:00:00.000Z',
+            fullname: 'Jane Doe',
+            email: 'janedoe@example.com',
+            phoneNumber: '081234567891',
+            isEmailVerified: false,
+            isPhoneVerified: false,
+            active: true,
+            createdBy: null,
+            createdAt: '2026-08-01T10:00:00.000Z',
+            modifiedBy: null,
+            modifiedAt: null,
+            lastLoginAt: null,
           },
+        },
+      },
+    }),
+    ApiConflictResponse({
+      description: 'Email sudah terdaftar',
+      schema: {
+        example: {
+          statusCode: 400,
+          message: 'Email already exists',
+          error: 'Bad Request',
         },
       },
     }),
@@ -117,15 +155,41 @@ export function ApiUpdateUser() {
           message: 'Success Update User',
           data: {
             id: 1,
-            username: 'johndoe',
-            name: 'John Doe Updated',
-            createdAt: '2026-07-20T08:00:00.000Z',
-            updatedAt: '2026-07-25T10:15:00.000Z',
+            fullname: 'John Doe Updated',
+            email: 'johndoe@example.com',
+            phoneNumber: '081234567890',
+            isEmailVerified: false,
+            isPhoneVerified: false,
+            active: true,
+            createdBy: null,
+            createdAt: '2026-08-01T08:00:00.000Z',
+            modifiedBy: null,
+            modifiedAt: '2026-08-01T11:00:00.000Z',
+            lastLoginAt: null,
           },
         },
       },
     }),
-    ApiNotFoundResponse({ description: 'User tidak ditemukan' }),
+    ApiNotFoundResponse({
+      description: 'User tidak ditemukan',
+      schema: {
+        example: {
+          statusCode: 404,
+          message: 'User not found',
+          error: 'Not Found',
+        },
+      },
+    }),
+    ApiConflictResponse({
+      description: 'Email sudah dipakai user lain',
+      schema: {
+        example: {
+          statusCode: 409,
+          message: 'Email already exists',
+          error: 'Conflict',
+        },
+      },
+    }),
   );
 }
 
@@ -133,6 +197,15 @@ export function ApiDeleteUser() {
   return applyDecorators(
     ApiOperation({ summary: 'Delete User' }),
     ApiNoContentResponse({ description: 'Berhasil menghapus user' }),
-    ApiNotFoundResponse({ description: 'User tidak ditemukan' }),
+    ApiNotFoundResponse({
+      description: 'User tidak ditemukan',
+      schema: {
+        example: {
+          statusCode: 404,
+          message: 'User not found',
+          error: 'Not Found',
+        },
+      },
+    }),
   );
 }

@@ -4,7 +4,7 @@ import { IsInt, IsOptional, IsString, Min } from 'class-validator';
 
 export class FindAllUserRolesDto {
   @ApiPropertyOptional({
-    description: 'Filter berdasarkan username atau role name (partial match, case-insensitive)',
+    description: 'Filter berdasarkan fullname, email, atau nama role (partial match, case-insensitive)',
     example: 'admin',
   })
   @IsOptional()

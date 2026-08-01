@@ -17,13 +17,14 @@ export class UsersService {
   ) {}
 
   async findAll(query: FindAllUsersDto) {
+
     const { filter, pageNumber = 1, pageSize = 10 } = query;
 
-    const [data, totalItems] = await this.userRepository.findAndCount({
+    const [data, total] = await this.userRepository.findAndCount({
       where: filter
         ? [
-            { username: ILike(`%${filter}%`) },
-            { name: ILike(`%${filter}%`) },
+            { fullname: ILike(`%${filter}%`) },
+            { email: ILike(`%${filter}%`) },
           ]
         : {},
       order: {
@@ -33,73 +34,73 @@ export class UsersService {
       take: pageSize,
     });
 
-    const totalPages = Math.ceil(totalItems / pageSize) || 1;
-
     return {
-      data: data,
-      meta: {
-        totalItems,
-        totalPages,
-        pageNumber,
-        pageSize,
-      },
+      data,
+      total,
+      pageNumber,
+      pageSize,
     };
   }
 
-  async findOne(id:number):Promise<User>{
+  async findOne(id: number): Promise<User> {
     return await this.getUserOrThrow(id);
   }
 
-  async findByUsername(username: string): Promise<User | null> {
-  return await this.userRepository.findOne({
-    where: {
-      username: username.toLowerCase(),
-    },
-  });
+  async findByEmail(email: string): Promise<User | null> {
+    return await this.userRepository.findOne({
+      where: {
+        email: email.toLowerCase(),
+      },
+    });
   }
 
   async create(dto: CreateUserDto): Promise<User> {
-  const normalizedUsername = dto.username.toLowerCase();
-  const existingUser = await this.findByUsername(normalizedUsername);
-  if (existingUser) {
-    throw new BadRequestException('Username already exists');
-  }
-  const encryptedPassword = this.cryptographyService.encrypt(dto.password);
-  const user = this.userRepository.create({
-    username: normalizedUsername,
-    name: dto.name,
-    passwordHash: encryptedPassword,
-    createdAt: new Date(),
-    updatedAt: new Date(),
-  });
-  return await this.userRepository.save(user);
-  }
 
-  async update(id: number, dto: UpdateUserDto,): Promise<User> {
-    const user = await this.getUserOrThrow(id);
-    const normalizedUsername = dto.username ? dto.username.toLowerCase() : undefined;
-
-    if (normalizedUsername && normalizedUsername !== user.username) {
-        const existing = await this.findByUsername(normalizedUsername);
-        if (existing) {
-            throw new ConflictException(
-                'Username already exists',
-            );
-        }
+    const normalizedEmail = dto.email.toLowerCase();
+    const existingUser = await this.findByEmail(normalizedEmail);
+    if (existingUser) {
+      throw new BadRequestException('Email already exists');
     }
 
-    const { password, username, ...rest } = dto as UpdateUserDto & { password?: string };
+    const encryptedPassword = this.cryptographyService.encrypt(dto.password);
+
+    const user = this.userRepository.create({
+      fullname: dto.fullname,
+      email: normalizedEmail,
+      phoneNumber: dto.phoneNumber,
+      passwordHash: encryptedPassword,
+      active: dto.active ?? true,
+      createdAt: new Date(),
+    });
+
+    return await this.userRepository.save(user);
+  }
+
+  async update(id: number, dto: UpdateUserDto): Promise<User> {
+
+    const user = await this.getUserOrThrow(id);
+    const normalizedEmail = dto.email ? dto.email.toLowerCase() : undefined;
+
+    if (normalizedEmail && normalizedEmail !== user.email) {
+      const existing = await this.findByEmail(normalizedEmail);
+      if (existing) {
+        throw new ConflictException('Email already exists');
+      }
+    }
+
+    const { password, email, ...rest } = dto;
     Object.assign(user, rest);
 
-    if (normalizedUsername) {
-        user.username = normalizedUsername;
+    if (normalizedEmail) {
+      user.email = normalizedEmail;
     }
 
     if (password) {
-        user.passwordHash = this.cryptographyService.encrypt(password);
+      user.passwordHash = this.cryptographyService.encrypt(password);
     }
 
-    user.updatedAt = new Date();
+    user.modifiedAt = new Date();
+
     return await this.userRepository.save(user);
   }
 
@@ -109,16 +110,18 @@ export class UsersService {
   }
 
   private async getUserOrThrow(id: number): Promise<User> {
+
     const user = await this.userRepository.findOne({
-        where: {
-            id,
-        },
+      where: {
+        id,
+      },
     });
 
     if (!user) {
-        throw new NotFoundException('User not found');
+      throw new NotFoundException('User not found');
     }
+
     return user;
-}
+  }
 
 }

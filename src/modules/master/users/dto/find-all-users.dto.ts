@@ -3,8 +3,9 @@ import { Type } from 'class-transformer';
 import { IsInt, IsOptional, IsString, Min } from 'class-validator';
 
 export class FindAllUsersDto {
+
   @ApiPropertyOptional({
-    description: 'Filter berdasarkan username atau name (partial match, case-insensitive)',
+    description: 'Filter berdasarkan fullname atau email (partial match, case-insensitive)',
     example: '',
   })
   @IsOptional()

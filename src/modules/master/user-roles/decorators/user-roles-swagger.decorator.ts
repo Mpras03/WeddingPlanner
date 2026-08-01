@@ -19,7 +19,7 @@ export function ApiGetAllUserRoles() {
       name: 'filter',
       required: false,
       type: String,
-      description: 'Filter berdasarkan username atau role name',
+      description: 'Filter berdasarkan fullname, email, atau nama role',
       example: 'admin',
     }),
     ApiQuery({
@@ -43,24 +43,23 @@ export function ApiGetAllUserRoles() {
           statusCode: 200,
           message: 'Success Get All User Roles',
           data: {
-            items: [
+            data: [
               {
                 id: 1,
                 userId: 1,
-                username: 'johndoe',
+                fullname: 'John Doe',
+                email: 'johndoe@example.com',
                 roleId: 1,
                 roleName: 'Admin',
                 isPrimary: true,
-                createdAt: '2026-07-20T08:00:00.000Z',
+                description: 'Administrator System',
+                createdAt: '2026-08-01T08:00:00.000Z',
                 updatedAt: null,
               },
             ],
-            meta: {
-              totalItems: 12,
-              totalPages: 2,
-              pageNumber: 1,
-              pageSize: 10,
-            },
+            total: 1,
+            pageNumber: 1,
+            pageSize: 10,
           },
         },
       },
@@ -88,16 +87,37 @@ export function ApiAssignRoleToUser() {
           message: 'Success Assign Role To User',
           data: {
             id: 1,
-            userName: 'johndoe',
+            userId: 1,
+            fullname: 'John Doe',
+            email: 'johndoe@example.com',
+            roleId: 1,
             roleName: 'Admin',
             isPrimary: true,
-            createdAt: '2026-07-25T10:00:00.000Z',
+            createdAt: '2026-08-01T10:00:00.000Z',
           },
         },
       },
     }),
-    ApiNotFoundResponse({ description: 'User atau Role tidak ditemukan' }),
-    ApiConflictResponse({ description: 'User sudah memiliki role tersebut' }),
+    ApiNotFoundResponse({
+      description: 'User atau Role tidak ditemukan',
+      schema: {
+        example: {
+          statusCode: 404,
+          message: 'User not found',
+          error: 'Not Found',
+        },
+      },
+    }),
+    ApiConflictResponse({
+      description: 'User sudah memiliki role tersebut',
+      schema: {
+        example: {
+          statusCode: 409,
+          message: 'User already has this role',
+          error: 'Conflict',
+        },
+      },
+    }),
   );
 }
 
@@ -112,8 +132,8 @@ export function ApiGetUserRoles() {
           message: 'Success Get User Roles',
           data: {
             userId: 1,
-            username: 'johndoe',
-            name: 'John Doe',
+            email: 'johndoe@example.com',
+            fullname: 'John Doe',
             roles: [
               { id: 1, roleName: 'Admin', isPrimary: true },
               { id: 2, roleName: 'Staff', isPrimary: false },
@@ -122,7 +142,16 @@ export function ApiGetUserRoles() {
         },
       },
     }),
-    ApiNotFoundResponse({ description: 'User tidak ditemukan' }),
+    ApiNotFoundResponse({
+      description: 'User tidak ditemukan',
+      schema: {
+        example: {
+          statusCode: 404,
+          message: 'User not found',
+          error: 'Not Found',
+        },
+      },
+    }),
   );
 }
 
@@ -154,16 +183,37 @@ export function ApiUpdateUserRole() {
           message: 'Success Update User Role',
           data: {
             id: 1,
-            userName: 'janedoe',
+            userId: 2,
+            fullname: 'Jane Doe',
+            email: 'janedoe@example.com',
+            roleId: 1,
             roleName: 'Admin',
             isPrimary: true,
-            updatedAt: '2026-07-25T11:00:00.000Z',
+            updatedAt: '2026-08-01T11:00:00.000Z',
           },
         },
       },
     }),
-    ApiNotFoundResponse({ description: 'User role, User, atau Role tidak ditemukan' }),
-    ApiConflictResponse({ description: 'User tujuan sudah memiliki role tersebut' }),
+    ApiNotFoundResponse({
+      description: 'User role, User, atau Role tidak ditemukan',
+      schema: {
+        example: {
+          statusCode: 404,
+          message: 'User role not found',
+          error: 'Not Found',
+        },
+      },
+    }),
+    ApiConflictResponse({
+      description: 'User tujuan sudah memiliki role tersebut',
+      schema: {
+        example: {
+          statusCode: 409,
+          message: 'User already has this role',
+          error: 'Conflict',
+        },
+      },
+    }),
   );
 }
 
@@ -171,6 +221,15 @@ export function ApiRemoveRoleFromUser() {
   return applyDecorators(
     ApiOperation({ summary: 'Remove Role From User' }),
     ApiNoContentResponse({ description: 'Berhasil menghapus role dari user' }),
-    ApiNotFoundResponse({ description: 'User role tidak ditemukan' }),
+    ApiNotFoundResponse({
+      description: 'User role tidak ditemukan',
+      schema: {
+        example: {
+          statusCode: 404,
+          message: 'User role not found',
+          error: 'Not Found',
+        },
+      },
+    }),
   );
 }

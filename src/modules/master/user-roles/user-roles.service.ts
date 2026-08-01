@@ -28,11 +28,12 @@ export class UserRolesService {
   async findAll(query: FindAllUserRolesDto) {
     const { filter, pageNumber = 1, pageSize = 10 } = query;
 
-    const [data, totalItems] = await this.userRoleRepository.findAndCount({
+    const [data, total] = await this.userRoleRepository.findAndCount({
       where: filter
         ? [
-            { userName: ILike(`%${filter}%`) },
-            { roleName: ILike(`%${filter}%`) },
+            { user: { fullname: ILike(`%${filter}%`) } },
+            { user: { email: ILike(`%${filter}%`) } },
+            { role: { roleName: ILike(`%${filter}%`) } },
           ]
         : {},
       relations: {
@@ -46,134 +47,119 @@ export class UserRolesService {
       take: pageSize,
     });
 
-    const totalPages = Math.ceil(totalItems / pageSize) || 1;
-
     return {
       data: data.map((item) => ({
         id: item.id,
         userId: item.user.id,
-        username: item.userName,
+        fullname: item.user.fullname,
+        email: item.user.email,
         roleId: item.role.id,
-        roleName: item.roleName,
+        roleName: item.role.roleName,
         isPrimary: item.isPrimary,
+        description: item.description,
         createdAt: item.createdAt,
         updatedAt: item.updatedAt ?? null,
       })),
-      meta: {
-        totalItems,
-        totalPages,
-        pageNumber,
-        pageSize,
-      },
+      total,
+      pageNumber,
+      pageSize,
     };
   }
   //========================================================================================
 
   //=========================== CREATE USER ROLE ======================================
-  async create(userId: number, dto: CreateUserRoleDto,): Promise<UserRole> {
-  // Cari user
-  const user = await this.userRepository.findOne({
-    where: {
-      id: userId,
-    },
-  });
-  if (!user) {
-    throw new NotFoundException('User not found');
-  }
+  async create(userId: number, dto: CreateUserRoleDto) {
 
-  // Cari role
-  const role = await this.roleRepository.findOne({
-    where: {
-      id: dto.roleId,
-    },
-  });
-  if (!role) {
-    throw new NotFoundException('Role not found');
-  }
-
-  // Cek duplicate
-  const existing = await this.userRoleRepository.findOne({
-    where: {
-      user: {
-        id: userId,
-      },
-      role: {
-        id: dto.roleId,
-      },
-    },
-    relations: {
-    user: true,
-    role: true,
-  },
-  });
-
-  if (existing) {
-    throw new ConflictException(
-      'User already has this role',
-    );
-  }
-
-  // Validasi: isPrimary hanya boleh 1 untuk 1 user -> unset primary lain jika perlu
-  if (dto.isPrimary) {
-    await this.unsetOtherPrimaryRoles(userId);
-  }
-
-  // Buat entity
-  const userRole = this.userRoleRepository.create({
-    user,
-    userName: user.username,
-    role,
-    roleName: role.roleName,
-    description: role.description,
-    isPrimary: dto.isPrimary ?? false,
-    createdAt: new Date(),
-  });
-  return await this.userRoleRepository.save(userRole);
-}
-//========================================================================================
-
-//============================ FIND ROLE BY USER =========================================
-  async findRolesByUser(userId: number) {
     const user = await this.userRepository.findOne({
+      where: { id: userId },
+    });
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+
+    const role = await this.roleRepository.findOne({
+      where: { id: dto.roleId },
+    });
+    if (!role) {
+      throw new NotFoundException('Role not found');
+    }
+
+    const existing = await this.userRoleRepository.findOne({
       where: {
-        id: userId,
+        user: { id: userId },
+        role: { id: dto.roleId },
       },
     });
+    if (existing) {
+      throw new ConflictException('User already has this role');
+    }
 
+    // Validasi: isPrimary hanya boleh 1 untuk 1 user -> unset primary lain jika perlu
+    if (dto.isPrimary) {
+      await this.unsetOtherPrimaryRoles(userId);
+    }
+
+    const userRole = this.userRoleRepository.create({
+      user,
+      role,
+      description: role.description,
+      isPrimary: dto.isPrimary ?? false,
+      createdAt: new Date(),
+    });
+
+    const saved = await this.userRoleRepository.save(userRole);
+
+    return {
+      id: saved.id,
+      userId: user.id,
+      fullname: user.fullname,
+      email: user.email,
+      roleId: role.id,
+      roleName: role.roleName,
+      isPrimary: saved.isPrimary,
+      createdAt: saved.createdAt,
+    };
+  }
+  //========================================================================================
+
+  //============================ FIND ROLE BY USER =========================================
+  async findRolesByUser(userId: number) {
+
+    const user = await this.userRepository.findOne({
+      where: { id: userId },
+    });
     if (!user) {
       throw new NotFoundException('User not found');
     }
 
     const userRoles = await this.userRoleRepository.find({
       where: {
-        user: {
-          id: userId,
-        },
+        user: { id: userId },
       },
       relations: {
         role: true,
       },
       order: {
-        roleName: 'ASC',
+        role: { roleName: 'ASC' },
       },
     });
 
     return {
       userId: user.id,
-      username: user.username,
-      name: user.name,
+      email: user.email,
+      fullname: user.fullname,
       roles: userRoles.map((item) => ({
         id: item.role.id,
         roleName: item.role.roleName,
         isPrimary: item.isPrimary,
       })),
     };
-
   }
-//========================================================================================
+  //========================================================================================
 
-//============================ UPDATE USER ROLE =========================================
-  async update(id: number, dto: UpdateUserRoleDto): Promise<UserRole> {
+  //============================ UPDATE USER ROLE =========================================
+  async update(id: number, dto: UpdateUserRoleDto) {
+
     const userRole = await this.userRoleRepository.findOne({
       where: { id },
       relations: {
@@ -181,7 +167,6 @@ export class UserRolesService {
         role: true,
       },
     });
-
     if (!userRole) {
       throw new NotFoundException('User role not found');
     }
@@ -234,9 +219,7 @@ export class UserRolesService {
     }
 
     userRole.user = targetUser;
-    userRole.userName = targetUser.username;
     userRole.role = targetRole;
-    userRole.roleName = targetRole.roleName;
 
     if (dto.isPrimary !== undefined) {
       userRole.isPrimary = dto.isPrimary;
@@ -244,33 +227,38 @@ export class UserRolesService {
 
     userRole.updatedAt = new Date();
 
-    return await this.userRoleRepository.save(userRole);
-  }
-//========================================================================================
+    const saved = await this.userRoleRepository.save(userRole);
 
-//============================ DELETE USER ROLE BY USER ID and ROLE ID =========================================
-  async removeRole(userId: number, roleId: number, ): Promise<void> {
+    return {
+      id: saved.id,
+      userId: targetUser.id,
+      fullname: targetUser.fullname,
+      email: targetUser.email,
+      roleId: targetRole.id,
+      roleName: targetRole.roleName,
+      isPrimary: saved.isPrimary,
+      updatedAt: saved.updatedAt,
+    };
+  }
+  //========================================================================================
+
+  //============================ DELETE USER ROLE BY USER ID and ROLE ID =========================================
+  async removeRole(userId: number, roleId: number): Promise<void> {
     const userRole = await this.userRoleRepository.findOne({
       where: {
-        user: {
-          id: userId,
-        },
-        role: {
-          id: roleId,
-        },
+        user: { id: userId },
+        role: { id: roleId },
       },
     });
 
     if (!userRole) {
-      throw new NotFoundException(
-        'User role not found',
-      );
+      throw new NotFoundException('User role not found');
     }
     await this.userRoleRepository.remove(userRole);
   }
-//========================================================================================
+  //========================================================================================
 
-//============================ HELPER: UNSET PRIMARY ROLE LAIN MILIK USER YANG SAMA =========================================
+  //============================ HELPER: UNSET PRIMARY ROLE LAIN MILIK USER YANG SAMA =========================================
   private async unsetOtherPrimaryRoles(userId: number, excludeUserRoleId?: number): Promise<void> {
     const primaryRoles = await this.userRoleRepository.find({
       where: {
@@ -292,6 +280,6 @@ export class UserRolesService {
 
     await this.userRoleRepository.save(toUnset);
   }
-//========================================================================================
+  //========================================================================================
 
 }
