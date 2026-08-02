@@ -14,5 +14,6 @@ import { User } from '../users/entities/user.entity';
   ],
   providers: [VendorProfileService],
   controllers: [VendorProfileController],
+  exports: [VendorProfileService],
 })
 export class VendorProfileModule {}

@@ -8,6 +8,7 @@ import { AuthModule } from './modules/master/auth/auth.module';
 import { CryptographyModule } from './modules/master/cryptography/cryptography.module';
 import { CustomerProfileModule } from './modules/master/customer-profile/customer-profile.module';
 import { VendorProfileModule } from './modules/master/vendor-profile/vendor-profile.module';
+import { RegisterModule } from './modules/master/register/register.module';
 
 @Module({
   imports: [
@@ -40,6 +41,8 @@ import { VendorProfileModule } from './modules/master/vendor-profile/vendor-prof
   CustomerProfileModule,
 
   VendorProfileModule,
+
+  RegisterModule,
 ],
   controllers: [],
   providers: [],
