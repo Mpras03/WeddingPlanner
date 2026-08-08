@@ -56,6 +56,22 @@ export class CustomerProfileService {
   }
   //========================================================================================
 
+  //=========================== GET CUSTOMER PROFILE BY USER ID ======================================
+  async findByUserId(userId: number): Promise<CustomerProfile> {
+
+    const profile = await this.customerProfileRepository.findOne({
+      where: { user: { id: userId } },
+      relations: { user: true },
+    });
+
+    if (!profile) {
+      throw new NotFoundException('Customer profile not found for this user');
+    }
+
+    return profile;
+  }
+  //========================================================================================
+
   //=========================== CREATE CUSTOMER PROFILE ======================================
   async create(dto: CreateCustomerProfileDto): Promise<CustomerProfile> {
 

@@ -106,6 +106,32 @@ export function ApiGetVendorProfileById() {
   );
 }
 
+export function ApiGetVendorProfileByUserId() {
+  return applyDecorators(
+    ApiOperation({ summary: 'Get Vendor Profile By User Id' }),
+    ApiOkResponse({
+      description: 'Berhasil mengambil data vendor profile berdasarkan user id',
+      schema: {
+        example: {
+          statusCode: 200,
+          message: 'Success Get Vendor Profile By User Id',
+          data: sampleVendorProfile,
+        },
+      },
+    }),
+    ApiNotFoundResponse({
+      description: 'Vendor profile tidak ditemukan untuk user ini',
+      schema: {
+        example: {
+          statusCode: 404,
+          message: 'Vendor profile not found for this user',
+          error: 'Not Found',
+        },
+      },
+    }),
+  );
+}
+
 export function ApiCreateVendorProfile() {
   return applyDecorators(
     ApiOperation({ summary: 'Create Vendor Profile' }),

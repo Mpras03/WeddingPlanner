@@ -99,6 +99,32 @@ export function ApiGetCustomerProfileById() {
   );
 }
 
+export function ApiGetCustomerProfileByUserId() {
+  return applyDecorators(
+    ApiOperation({ summary: 'Get Customer Profile By User Id' }),
+    ApiOkResponse({
+      description: 'Berhasil mengambil data customer profile berdasarkan user id',
+      schema: {
+        example: {
+          statusCode: 200,
+          message: 'Success Get Customer Profile By User Id',
+          data: sampleProfile,
+        },
+      },
+    }),
+    ApiNotFoundResponse({
+      description: 'Customer profile tidak ditemukan untuk user ini',
+      schema: {
+        example: {
+          statusCode: 404,
+          message: 'Customer profile not found for this user',
+          error: 'Not Found',
+        },
+      },
+    }),
+  );
+}
+
 export function ApiCreateCustomerProfile() {
   return applyDecorators(
     ApiOperation({ summary: 'Create Customer Profile' }),

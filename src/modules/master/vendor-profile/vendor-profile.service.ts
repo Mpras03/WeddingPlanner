@@ -57,6 +57,22 @@ export class VendorProfileService {
   }
   //========================================================================================
 
+  //=========================== GET VENDOR PROFILE BY USER ID ======================================
+  async findByUserId(userId: number): Promise<VendorProfile> {
+
+    const profile = await this.vendorProfileRepository.findOne({
+      where: { user: { id: userId } },
+      relations: { user: true },
+    });
+
+    if (!profile) {
+      throw new NotFoundException('Vendor profile not found for this user');
+    }
+
+    return profile;
+  }
+  //========================================================================================
+
   //=========================== CREATE VENDOR PROFILE ======================================
   async create(dto: CreateVendorProfileDto): Promise<VendorProfile> {
 

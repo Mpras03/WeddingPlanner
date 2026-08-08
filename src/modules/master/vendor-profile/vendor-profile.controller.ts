@@ -22,6 +22,7 @@ import { ResponseMessage } from '../../../common/response/decorators/response-me
 import {
   ApiGetAllVendorProfile,
   ApiGetVendorProfileById,
+  ApiGetVendorProfileByUserId,
   ApiCreateVendorProfile,
   ApiUpdateVendorProfile,
   ApiDeleteVendorProfile,
@@ -53,6 +54,15 @@ export class VendorProfileController {
     @Param('id', ParseIntPipe) id: number,
   ) {
     return this.vendorProfileService.findOne(id);
+  }
+
+  @Get('user/:userId')
+  @ResponseMessage("Success Get Vendor Profile By User Id")
+  @ApiGetVendorProfileByUserId()
+  findByUserId(
+    @Param('userId', ParseIntPipe) userId: number,
+  ) {
+    return this.vendorProfileService.findByUserId(userId);
   }
 
   @Post()

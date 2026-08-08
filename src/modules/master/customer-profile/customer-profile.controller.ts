@@ -22,6 +22,7 @@ import { ResponseMessage } from '../../../common/response/decorators/response-me
 import {
   ApiGetAllCustomerProfile,
   ApiGetCustomerProfileById,
+  ApiGetCustomerProfileByUserId,
   ApiCreateCustomerProfile,
   ApiUpdateCustomerProfile,
   ApiDeleteCustomerProfile,
@@ -53,6 +54,15 @@ export class CustomerProfileController {
     @Param('id', ParseIntPipe) id: number,
   ) {
     return this.customerProfileService.findOne(id);
+  }
+
+  @Get('user/:userId')
+  @ResponseMessage("Success Get Customer Profile By User Id")
+  @ApiGetCustomerProfileByUserId()
+  findByUserId(
+    @Param('userId', ParseIntPipe) userId: number,
+  ) {
+    return this.customerProfileService.findByUserId(userId);
   }
 
   @Post()
