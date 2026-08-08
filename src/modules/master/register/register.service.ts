@@ -1,4 +1,4 @@
-import { BadRequestException, ConflictException, Injectable } from '@nestjs/common';
+import { BadRequestException, ConflictException, Injectable, Logger } from '@nestjs/common';
 import { InjectDataSource } from '@nestjs/typeorm';
 import { DataSource, EntityManager } from 'typeorm';
 import { User } from '../users/entities/user.entity';
@@ -7,6 +7,8 @@ import { UserRole } from '../user-roles/entities/user-role.entity';
 import { CustomerProfile } from '../customer-profile/entities/customer-profile.entity';
 import { VendorProfile } from '../vendor-profile/entities/vendor-profile.entity';
 import { CryptographyService } from '../cryptography/cryptography.service';
+import { OtpService } from '../auth/otp/otp.service';
+import { OtpPurpose } from '../auth/otp/otp-purpose.enum';
 import { RegisterCustomerDto } from './dto/register-customer.dto';
 import { RegisterVendorDto } from './dto/register-vendor.dto';
 
@@ -18,11 +20,13 @@ const PASSWORD_REGEX = /^(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z0-9]).{8,}$/;
 
 @Injectable()
 export class RegisterService {
+  private readonly logger = new Logger(RegisterService.name);
 
   constructor(
     @InjectDataSource()
     private readonly dataSource: DataSource,
     private readonly cryptographyService: CryptographyService,
+    private readonly otpService: OtpService,
   ) {}
 
   //=========================== REGISTER CUSTOMER ======================================
@@ -34,7 +38,7 @@ export class RegisterService {
     this.validatePasswordMatch(plainPassword, plainConfirmPassword);
     this.validatePasswordStrength(plainPassword);
 
-    return await this.dataSource.transaction(async (manager) => {
+    const result = await this.dataSource.transaction(async (manager) => {
 
       await this.ensureEmailAndPhoneAvailable(manager, dto.email, dto.phoneNumber);
 
@@ -83,6 +87,10 @@ export class RegisterService {
         profile: savedProfile,
       };
     });
+
+    await this.sendRegistrationOtp(result.user.id, result.user.email);
+
+    return result;
   }
   //========================================================================================
 
@@ -95,7 +103,7 @@ export class RegisterService {
     this.validatePasswordMatch(plainPassword, plainConfirmPassword);
     this.validatePasswordStrength(plainPassword);
 
-    return await this.dataSource.transaction(async (manager) => {
+    const result = await this.dataSource.transaction(async (manager) => {
 
       await this.ensureEmailAndPhoneAvailable(manager, dto.email, dto.businessPhone);
 
@@ -150,6 +158,21 @@ export class RegisterService {
         profile: savedProfile,
       };
     });
+
+    await this.sendRegistrationOtp(result.user.id, result.user.email);
+
+    return result;
+  }
+  //========================================================================================
+
+  //============================ HELPER: KIRIM OTP VERIFIKASI EMAIL SETELAH REGISTER ==============================
+  private async sendRegistrationOtp(userId: number, email: string): Promise<void> {
+    try {
+      await this.otpService.sendOtp(userId, email, OtpPurpose.REGISTER);
+    } catch (error: any) {
+      // Kegagalan kirim OTP tidak boleh membatalkan registrasi yang sudah berhasil
+      this.logger.warn(`Gagal membuat/mengirim OTP registrasi untuk user ${userId}: ${error.message}`);
+    }
   }
   //========================================================================================
 

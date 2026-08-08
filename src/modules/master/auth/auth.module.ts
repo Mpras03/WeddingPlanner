@@ -9,6 +9,9 @@ import { PassportModule } from '@nestjs/passport';
 import { JwtStrategy } from './strategies/jwt.strategy';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { UserRole } from '../user-roles/entities/user-role.entity';
+import { Otp } from './entities/otp.entity';
+import { OtpService } from './otp/otp.service';
+import { MailService } from './mail/mail.service';
 
 @Module({
   imports: [
@@ -17,6 +20,7 @@ import { UserRole } from '../user-roles/entities/user-role.entity';
     PassportModule,
     TypeOrmModule.forFeature([
         UserRole,
+        Otp,
     ]),
     JwtModule.registerAsync({
       inject: [ConfigService],
@@ -31,6 +35,7 @@ import { UserRole } from '../user-roles/entities/user-role.entity';
     })
   ],
   controllers: [AuthController],
-  providers: [AuthService,JwtStrategy],
+  providers: [AuthService, JwtStrategy, OtpService, MailService],
+  exports: [OtpService],
 })
 export class AuthModule {}

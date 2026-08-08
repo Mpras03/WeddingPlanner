@@ -109,6 +109,21 @@ export class UsersService {
     await this.userRepository.remove(user);
   }
 
+  async markEmailVerified(id: number): Promise<void> {
+    await this.userRepository.update(id, {
+      isEmailVerified: true,
+      modifiedAt: new Date(),
+    });
+  }
+
+  // passwordHash di sini adalah cipherText asli (hasil POST /cryptography/encrypt), tidak di-encrypt ulang
+  async updatePasswordHash(id: number, passwordHash: string): Promise<void> {
+    await this.userRepository.update(id, {
+      passwordHash,
+      modifiedAt: new Date(),
+    });
+  }
+
   private async getUserOrThrow(id: number): Promise<User> {
 
     const user = await this.userRepository.findOne({
