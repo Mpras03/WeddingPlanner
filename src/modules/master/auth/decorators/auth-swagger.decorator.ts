@@ -44,6 +44,9 @@ export function ApiLogin() {
               id: 1,
               email: 'johndoe@example.com',
               fullname: 'John Doe',
+              phoneNumber: '081234567890',
+              isEmailVerified: true,
+              isPhoneVerified: false,
             },
             roles: {
               id: 1,
