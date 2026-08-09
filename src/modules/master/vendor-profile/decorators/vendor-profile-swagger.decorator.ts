@@ -2,6 +2,7 @@ import { applyDecorators } from '@nestjs/common';
 import {
   ApiOperation,
   ApiQuery,
+  ApiBody,
   ApiOkResponse,
   ApiCreatedResponse,
   ApiNoContentResponse,
@@ -28,6 +29,7 @@ const sampleVendorProfile = {
   description: 'Vendor spesialis dekorasi dan katering pernikahan',
   serviceArea: 'Jabodetabek',
   logoUrl: 'https://cdn.example.com/logo/kencana-wo.jpg',
+  categories: 'Catering,Wedding Organizer,Decoration',
   status: 1,
   rejectReason: null,
   isVerified: false,
@@ -36,6 +38,102 @@ const sampleVendorProfile = {
   createdAt: '2026-08-01T08:00:00.000Z',
   updatedBy: null,
   updatedAt: null,
+};
+
+const sampleAggregatedVendorProfile = {
+  ...sampleVendorProfile,
+  categories: ['Catering', 'Wedding Organizer', 'Decoration'],
+  contacts: [
+    {
+      id: '1',
+      contactType: 'WhatsApp',
+      contactValue: '6281234567890',
+      active: true,
+    },
+  ],
+  bankAccounts: [
+    {
+      id: '1',
+      bankName: 'BCA',
+      accountNumber: '1234567890',
+      accountHolderName: 'John Doe',
+      isPrimary: true,
+      active: true,
+    },
+  ],
+  verificationDocuments: [
+    {
+      id: '1',
+      documentType: 'NIB',
+      documentNumber: '1234567890123',
+      status: 2,
+      rejectReason: null,
+      attachmentId: '10',
+    },
+  ],
+  // Cuma id attachment yang dikirim — file aslinya di-load dari frontend lewat GET /attachments/:id/file (blob).
+  portfolioAttachmentIds: ['20', '21'],
+};
+
+const saveVendorProfileBodySchema = {
+  type: 'object',
+  required: ['userId'],
+  properties: {
+    userId: { type: 'integer', example: 1 },
+    businessName: { type: 'string', example: 'Kencana Wedding Organizer' },
+    ownerName: { type: 'string', example: 'John Doe' },
+    businessEmail: { type: 'string', example: 'business@kencana-wo.com' },
+    businessPhone: { type: 'string', example: '081234567890' },
+    businessAddress: { type: 'string', example: 'Jl. Sudirman No. 45' },
+    city: { type: 'string', example: 'Jakarta' },
+    province: { type: 'string', example: 'DKI Jakarta' },
+    latitude: { type: 'number', example: -6.2088 },
+    longitude: { type: 'number', example: 106.8456 },
+    description: {
+      type: 'string',
+      example: 'Vendor spesialis dekorasi dan katering pernikahan',
+    },
+    serviceArea: { type: 'string', example: 'Jabodetabek' },
+    logoUrl: {
+      type: 'string',
+      example: 'https://cdn.example.com/logo/kencana-wo.jpg',
+    },
+    categories: {
+      type: 'string',
+      description: 'JSON array string, mis. ["Catering","Wedding Organizer"]',
+      example: '["Catering","Wedding Organizer"]',
+    },
+    contacts: {
+      type: 'string',
+      description:
+        'JSON array string, mis. [{"contactType":"WhatsApp","contactValue":"6281234567890"}]',
+      example: '[{"contactType":"WhatsApp","contactValue":"6281234567890"}]',
+    },
+    bankAccount: {
+      type: 'string',
+      description:
+        'JSON object string, mis. {"bankName":"BCA","accountNumber":"123","accountHolderName":"John Doe"}',
+      example:
+        '{"bankName":"BCA","accountNumber":"1234567890","accountHolderName":"John Doe"}',
+    },
+    verificationDocuments: {
+      type: 'string',
+      description:
+        'JSON array string, mis. [{"documentType":"NIB","documentNumber":"123"}]',
+      example: '[{"documentType":"NIB","documentNumber":"1234567890123"}]',
+    },
+    portfolioImages: {
+      type: 'array',
+      items: { type: 'string', format: 'binary' },
+      description: 'File gambar portofolio (bisa lebih dari satu)',
+    },
+    verificationDocumentFiles: {
+      type: 'array',
+      items: { type: 'string', format: 'binary' },
+      description:
+        'File dokumen verifikasi, urutannya dipasangkan dengan array verificationDocuments',
+    },
+  },
 };
 
 export function ApiGetAllVendorProfile() {
@@ -108,14 +206,18 @@ export function ApiGetVendorProfileById() {
 
 export function ApiGetVendorProfileByUserId() {
   return applyDecorators(
-    ApiOperation({ summary: 'Get Vendor Profile By User Id' }),
+    ApiOperation({
+      summary: 'Get Vendor Profile By User Id',
+      description:
+        'Mengembalikan vendor profile beserta contacts, bankAccounts, verificationDocuments (masing-masing dengan attachmentId bila ada file terlampir), dan portfolioAttachmentIds. Attachment hanya dikirim sebagai id — file aslinya di-load terpisah lewat GET /attachments/:id/file (blob).',
+    }),
     ApiOkResponse({
       description: 'Berhasil mengambil data vendor profile berdasarkan user id',
       schema: {
         example: {
           statusCode: 200,
           message: 'Success Get Vendor Profile By User Id',
-          data: sampleVendorProfile,
+          data: sampleAggregatedVendorProfile,
         },
       },
     }),
@@ -209,6 +311,68 @@ export function ApiDeleteVendorProfile() {
         example: {
           statusCode: 404,
           message: 'Vendor profile not found',
+          error: 'Not Found',
+        },
+      },
+    }),
+  );
+}
+
+export function ApiSaveDraftVendorProfile() {
+  return applyDecorators(
+    ApiOperation({
+      summary: 'Save Draft Vendor Profile',
+      description:
+        'Upsert vendor profile (kategori, portofolio, logo, kontak, rekening utama, dokumen verifikasi) dengan status selalu di-set ke Draft (1), terlepas dari status sebelumnya.',
+    }),
+    ApiBody({ schema: saveVendorProfileBodySchema }),
+    ApiCreatedResponse({
+      description: 'Berhasil menyimpan draft vendor profile',
+      schema: {
+        example: {
+          statusCode: 201,
+          message: 'Success Save Draft Vendor Profile',
+          data: { ...sampleAggregatedVendorProfile, status: 1 },
+        },
+      },
+    }),
+    ApiNotFoundResponse({
+      description: 'User tidak ditemukan',
+      schema: {
+        example: {
+          statusCode: 404,
+          message: 'User not found',
+          error: 'Not Found',
+        },
+      },
+    }),
+  );
+}
+
+export function ApiSubmitVendorProfile() {
+  return applyDecorators(
+    ApiOperation({
+      summary: 'Submit Vendor Profile',
+      description:
+        'Upsert vendor profile sama seperti save-draft, tapi status selalu di-set ke Pending Verification (2) agar masuk antrean review admin.',
+    }),
+    ApiBody({ schema: saveVendorProfileBodySchema }),
+    ApiCreatedResponse({
+      description: 'Berhasil submit vendor profile untuk verifikasi',
+      schema: {
+        example: {
+          statusCode: 201,
+          message: 'Success Submit Vendor Profile',
+          data: { ...sampleAggregatedVendorProfile, status: 2 },
+        },
+      },
+    }),
+    ApiNotFoundResponse({
+      description: 'User tidak ditemukan',
+      schema: {
+        example: {
+          statusCode: 404,
+          message: 'User not found',
           error: 'Not Found',
         },
       },

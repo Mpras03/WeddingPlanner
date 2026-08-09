@@ -11,6 +11,9 @@ import { VendorProfileModule } from './modules/master/vendor-profile/vendor-prof
 import { RegisterModule } from './modules/master/register/register.module';
 import { AttachmentModule } from './modules/master/attachment/attachment.module';
 import { ParameterModule } from './modules/master/parameter/parameter.module';
+import { ContactsModule } from './modules/master/contacts/contacts.module';
+import { BankAccountsModule } from './modules/master/bank-accounts/bank-accounts.module';
+import { VerificationDocumentsModule } from './modules/master/verification-documents/verification-documents.module';
 
 @Module({
   imports: [
@@ -49,6 +52,12 @@ import { ParameterModule } from './modules/master/parameter/parameter.module';
     AttachmentModule,
 
     ParameterModule,
+
+    ContactsModule,
+
+    BankAccountsModule,
+
+    VerificationDocumentsModule,
   ],
   controllers: [],
   providers: [],

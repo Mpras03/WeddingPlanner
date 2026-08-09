@@ -103,6 +103,12 @@ export class VendorProfile {
   logoUrl: string;
 
   @Column({
+    length: 500,
+    nullable: true,
+  })
+  categories: string;
+
+  @Column({
     type: 'int',
     nullable: true,
   })
