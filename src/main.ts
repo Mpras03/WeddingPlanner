@@ -6,6 +6,10 @@ import { ClassSerializerInterceptor } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { ResponseInterceptor } from './common/response/interceptor/response.interceptor';
 
+// Paksa timezone proses Node ke WIB agar new Date() (created_at, expired_at, dll)
+// konsisten di semua environment, tidak tergantung timezone OS/container server (yang seringkali default UTC).
+process.env.TZ = process.env.TZ ?? 'Asia/Jakarta';
+
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
