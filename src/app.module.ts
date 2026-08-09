@@ -10,6 +10,7 @@ import { CustomerProfileModule } from './modules/master/customer-profile/custome
 import { VendorProfileModule } from './modules/master/vendor-profile/vendor-profile.module';
 import { RegisterModule } from './modules/master/register/register.module';
 import { AttachmentModule } from './modules/master/attachment/attachment.module';
+import { ParameterModule } from './modules/master/parameter/parameter.module';
 
 @Module({
   imports: [
@@ -46,6 +47,8 @@ import { AttachmentModule } from './modules/master/attachment/attachment.module'
     RegisterModule,
 
     AttachmentModule,
+
+    ParameterModule,
   ],
   controllers: [],
   providers: [],
