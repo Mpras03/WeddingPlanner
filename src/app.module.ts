@@ -9,41 +9,44 @@ import { CryptographyModule } from './modules/master/cryptography/cryptography.m
 import { CustomerProfileModule } from './modules/master/customer-profile/customer-profile.module';
 import { VendorProfileModule } from './modules/master/vendor-profile/vendor-profile.module';
 import { RegisterModule } from './modules/master/register/register.module';
+import { AttachmentModule } from './modules/master/attachment/attachment.module';
 
 @Module({
   imports: [
-  ConfigModule.forRoot({
-    isGlobal: true,
-    envFilePath: '.env',
-  }),
+    ConfigModule.forRoot({
+      isGlobal: true,
+      envFilePath: '.env',
+    }),
 
-  TypeOrmModule.forRoot({
-    type: 'postgres',
-    host: process.env.DB_HOST,
-    port: Number(process.env.DB_PORT),
-    username: process.env.DB_USERNAME,
-    password: process.env.DB_PASSWORD,
-    database: process.env.DB_DATABASE,
-    autoLoadEntities: true,
-    synchronize: false,
-  }),
+    TypeOrmModule.forRoot({
+      type: 'postgres',
+      host: process.env.DB_HOST,
+      port: Number(process.env.DB_PORT),
+      username: process.env.DB_USERNAME,
+      password: process.env.DB_PASSWORD,
+      database: process.env.DB_DATABASE,
+      autoLoadEntities: true,
+      synchronize: false,
+    }),
 
-  RolesModule,
+    RolesModule,
 
-  UsersModule,
+    UsersModule,
 
-  UserRolesModule,
+    UserRolesModule,
 
-  AuthModule,
+    AuthModule,
 
-  CryptographyModule,
+    CryptographyModule,
 
-  CustomerProfileModule,
+    CustomerProfileModule,
 
-  VendorProfileModule,
+    VendorProfileModule,
 
-  RegisterModule,
-],
+    RegisterModule,
+
+    AttachmentModule,
+  ],
   controllers: [],
   providers: [],
 })
