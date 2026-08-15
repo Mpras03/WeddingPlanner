@@ -2,6 +2,7 @@ import { applyDecorators } from '@nestjs/common';
 import {
   ApiOperation,
   ApiQuery,
+  ApiBody,
   ApiOkResponse,
   ApiCreatedResponse,
   ApiNoContentResponse,
@@ -29,6 +30,75 @@ const sampleProfile = {
   createdAt: '2026-08-01T08:00:00.000Z',
   modifiedBy: null,
   modifiedAt: null,
+  weddingDate: '2027-06-20',
+  eventType: 'AKAD_DAN_RESEPSI',
+  weddingProvince: 'DKI Jakarta',
+  weddingCity: 'Jakarta Selatan',
+  weddingLocation: 'The Glass House, Jl. Gatot Subroto No. 10',
+  weddingTheme: 'Modern romantic dengan nuansa putih dan dusty pink',
+  estimatedGuests: 250,
+  preferredVendorLocation: 'Jakarta dan sekitarnya',
+  packagePreference: 'FULL_SERVICE',
+  neededVendorCategories: ['Catering', 'Photography'],
+  estimatedBudget: 250000000,
+  budgetRangeMin: 200000000,
+  budgetRangeMax: 300000000,
+  budgetPriorities: ['Catering', 'Venue'],
+};
+
+const saveCustomerProfileBodySchema = {
+  type: 'object',
+  required: ['userId', 'fullName'],
+  properties: {
+    userId: { type: 'integer', example: 1 },
+    fullName: { type: 'string', example: 'John Doe' },
+    gender: { type: 'integer', example: 1 },
+    birthDate: { type: 'string', example: '1995-08-17' },
+    address: { type: 'string', example: 'Jl. Merdeka No. 10' },
+    city: { type: 'string', example: 'Jakarta' },
+    province: { type: 'string', example: 'DKI Jakarta' },
+    weddingDate: { type: 'string', example: '2027-06-20' },
+    eventType: {
+      type: 'string',
+      example: 'AKAD_DAN_RESEPSI',
+      enum: ['AKAD', 'RESEPSI', 'AKAD_DAN_RESEPSI', 'LAINNYA'],
+    },
+    weddingProvince: { type: 'string', example: 'DKI Jakarta' },
+    weddingCity: { type: 'string', example: 'Jakarta Selatan' },
+    weddingLocation: {
+      type: 'string',
+      example: 'The Glass House, Jl. Gatot Subroto No. 10',
+    },
+    weddingTheme: {
+      type: 'string',
+      example: 'Modern romantic dengan nuansa putih dan dusty pink',
+    },
+    estimatedGuests: { type: 'integer', example: 250 },
+    preferredVendorLocation: { type: 'string', example: 'Jakarta dan sekitarnya' },
+    packagePreference: {
+      type: 'string',
+      example: 'FULL_SERVICE',
+      enum: ['FULL_SERVICE', 'PER_SERVICE', 'CUSTOM'],
+    },
+    neededVendorCategories: {
+      type: 'string',
+      description: 'JSON array string, mis. ["Catering","Photography"]',
+      example: '["Catering","Photography"]',
+    },
+    estimatedBudget: { type: 'integer', example: 250000000 },
+    budgetRangeMin: { type: 'integer', example: 200000000 },
+    budgetRangeMax: { type: 'integer', example: 300000000 },
+    budgetPriorities: {
+      type: 'string',
+      description: 'JSON array string, mis. ["Catering","Venue"]',
+      example: '["Catering","Venue"]',
+    },
+    avatarPhoto: {
+      type: 'string',
+      format: 'binary',
+      description: 'File foto profil (opsional, menggantikan foto lama bila diisi)',
+    },
+  },
 };
 
 export function ApiGetAllCustomerProfile() {
@@ -201,6 +271,68 @@ export function ApiDeleteCustomerProfile() {
         example: {
           statusCode: 404,
           message: 'Customer profile not found',
+          error: 'Not Found',
+        },
+      },
+    }),
+  );
+}
+
+export function ApiSaveDraftCustomerProfile() {
+  return applyDecorators(
+    ApiOperation({
+      summary: 'Save Draft Customer Profile',
+      description:
+        'Upsert customer profile (data pribadi, alamat, detail pernikahan, foto profil) dengan status selalu di-set ke Draft (1), terlepas dari status sebelumnya.',
+    }),
+    ApiBody({ schema: saveCustomerProfileBodySchema }),
+    ApiCreatedResponse({
+      description: 'Berhasil menyimpan draft customer profile',
+      schema: {
+        example: {
+          statusCode: 201,
+          message: 'Success Save Draft Customer Profile',
+          data: { ...sampleProfile, status: 1 },
+        },
+      },
+    }),
+    ApiNotFoundResponse({
+      description: 'User tidak ditemukan',
+      schema: {
+        example: {
+          statusCode: 404,
+          message: 'User not found',
+          error: 'Not Found',
+        },
+      },
+    }),
+  );
+}
+
+export function ApiSubmitCustomerProfile() {
+  return applyDecorators(
+    ApiOperation({
+      summary: 'Submit Customer Profile',
+      description:
+        'Upsert customer profile sama seperti save-draft, tapi status selalu di-set ke Pending Verification (2).',
+    }),
+    ApiBody({ schema: saveCustomerProfileBodySchema }),
+    ApiCreatedResponse({
+      description: 'Berhasil submit customer profile',
+      schema: {
+        example: {
+          statusCode: 201,
+          message: 'Success Submit Customer Profile',
+          data: { ...sampleProfile, status: 2 },
+        },
+      },
+    }),
+    ApiNotFoundResponse({
+      description: 'User tidak ditemukan',
+      schema: {
+        example: {
+          statusCode: 404,
+          message: 'User not found',
           error: 'Not Found',
         },
       },
