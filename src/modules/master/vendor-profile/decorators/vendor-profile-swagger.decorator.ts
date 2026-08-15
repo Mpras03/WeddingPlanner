@@ -73,6 +73,7 @@ const sampleAggregatedVendorProfile = {
   ],
   // Cuma id attachment yang dikirim — file aslinya di-load dari frontend lewat GET /attachments/:id/file (blob).
   portfolioAttachmentIds: ['20', '21'],
+  logoAttachmentId: '30',
 };
 
 const saveVendorProfileBodySchema = {
@@ -180,14 +181,18 @@ export function ApiGetAllVendorProfile() {
 
 export function ApiGetVendorProfileById() {
   return applyDecorators(
-    ApiOperation({ summary: 'Get Vendor Profile By Id' }),
+    ApiOperation({
+      summary: 'Get Vendor Profile By Id',
+      description:
+        'Mengembalikan vendor profile beserta contacts, bankAccounts, verificationDocuments (masing-masing dengan attachmentId bila ada file terlampir), portfolioAttachmentIds, dan logoAttachmentId — bentuknya sama dengan Get Vendor Profile By User Id, selaras dengan field yang diterima save-draft/submit. Attachment hanya dikirim sebagai id — file aslinya di-load terpisah lewat GET /attachments/:id/file (blob).',
+    }),
     ApiOkResponse({
       description: 'Berhasil mengambil data vendor profile berdasarkan id',
       schema: {
         example: {
           statusCode: 200,
           message: 'Success Get Vendor Profile By Id',
-          data: sampleVendorProfile,
+          data: sampleAggregatedVendorProfile,
         },
       },
     }),
@@ -209,7 +214,7 @@ export function ApiGetVendorProfileByUserId() {
     ApiOperation({
       summary: 'Get Vendor Profile By User Id',
       description:
-        'Mengembalikan vendor profile beserta contacts, bankAccounts, verificationDocuments (masing-masing dengan attachmentId bila ada file terlampir), dan portfolioAttachmentIds. Attachment hanya dikirim sebagai id — file aslinya di-load terpisah lewat GET /attachments/:id/file (blob).',
+        'Mengembalikan vendor profile beserta contacts, bankAccounts, verificationDocuments (masing-masing dengan attachmentId bila ada file terlampir), portfolioAttachmentIds, dan logoAttachmentId. Attachment hanya dikirim sebagai id — file aslinya di-load terpisah lewat GET /attachments/:id/file (blob).',
     }),
     ApiOkResponse({
       description: 'Berhasil mengambil data vendor profile berdasarkan user id',

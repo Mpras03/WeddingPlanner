@@ -72,14 +72,15 @@ export class CustomerProfileService {
   }
   //========================================================================================
 
-  //=========================== GET CUSTOMER PROFILE BY ID ======================================
-  async findOne(id: number): Promise<CustomerProfile> {
-    return await this.getProfileOrThrow(id);
+  //=========================== GET CUSTOMER PROFILE BY ID (+ avatar attachment id) ======================================
+  async findOne(id: number) {
+    const profile = await this.getProfileOrThrow(id);
+    return await this.buildAggregatedProfile(profile);
   }
   //========================================================================================
 
-  //=========================== GET CUSTOMER PROFILE BY USER ID ======================================
-  async findByUserId(userId: number): Promise<CustomerProfile> {
+  //=========================== GET CUSTOMER PROFILE BY USER ID (+ avatar attachment id) ======================================
+  async findByUserId(userId: number) {
 
     const profile = await this.customerProfileRepository.findOne({
       where: { user: { id: userId } },
@@ -90,7 +91,7 @@ export class CustomerProfileService {
       throw new NotFoundException('Customer profile not found for this user');
     }
 
-    return profile;
+    return await this.buildAggregatedProfile(profile);
   }
   //========================================================================================
 
@@ -259,8 +260,8 @@ export class CustomerProfileService {
   //============================ HELPER: GANTI FOTO PROFIL (AVATAR) ==============================
   // Mengikuti pola replacePortfolioAttachments di vendor-profile: attachment lama untuk kategori
   // ini dihapus, lalu file baru diupload lewat AttachmentService (generic, referenceTable/referenceId/category).
-  // Setelah berhasil, avatarUrl pada baris profile ikut diperbarui agar tetap kompatibel dengan
-  // frontend yang saat ini masih menampilkan avatar sebagai URL biasa.
+  // Id attachment-nya baru didapat lewat buildAggregatedProfile (avatarAttachmentId), bukan disimpan
+  // sebagai URL di kolom avatarUrl — sama seperti logoUrl vendor yang tidak disentuh oleh upload logo.
   private async replaceAvatarAttachment(
     customerProfileId: number,
     file: Express.Multer.File | undefined,
@@ -289,7 +290,7 @@ export class CustomerProfileService {
     }
 
     try {
-      const uploaded = await this.attachmentService.create(
+      await this.attachmentService.create(
         file,
         {
           referenceTable: CUSTOMER_PROFILE_REFERENCE_TABLE,
@@ -299,12 +300,30 @@ export class CustomerProfileService {
         },
         actorUserId,
       );
-      await this.customerProfileRepository.update(customerProfileId, {
-        avatarUrl: uploaded.url,
-      });
     } catch (error: any) {
       this.logger.warn(`Gagal upload foto profil: ${error.message}`);
     }
+  }
+  //========================================================================================
+
+  //============================ HELPER: SUSUN PROFILE + AVATAR ATTACHMENT ID ==============================
+  // Attachment foto profil cuma dikirim sebagai id — file aslinya di-load terpisah dari frontend
+  // lewat GET /attachments/:id/file (blob), bukan di-embed di sini. Dipakai bersama oleh findOne
+  // (by id) dan findByUserId agar bentuk responsnya konsisten dan selaras dengan field yang
+  // diterima save-draft/submit.
+  private async buildAggregatedProfile(profile: CustomerProfile) {
+    const avatarAttachments = await this.attachmentService.findAll({
+      referenceTable: CUSTOMER_PROFILE_REFERENCE_TABLE,
+      referenceId: profile.id,
+      category: AVATAR_ATTACHMENT_CATEGORY,
+      pageNumber: 1,
+      pageSize: 1,
+    });
+
+    return {
+      ...profile,
+      avatarAttachmentId: avatarAttachments.data[0]?.id ?? null,
+    };
   }
   //========================================================================================
 

@@ -24,6 +24,7 @@ export interface SaveVendorProfileFiles {
 }
 
 const PORTFOLIO_ATTACHMENT_CATEGORY = 'portfolio';
+const LOGO_ATTACHMENT_CATEGORY = 'logo';
 const VENDOR_PROFILE_REFERENCE_TABLE = 'vendor_profiles';
 const VERIFICATION_DOCUMENT_REFERENCE_TABLE = 'verification_documents';
 const VERIFICATION_DOCUMENT_ATTACHMENT_CATEGORY = 'verification_document';
@@ -81,13 +82,14 @@ export class VendorProfileService {
   }
   //========================================================================================
 
-  //=========================== GET VENDOR PROFILE BY ID ======================================
-  async findOne(id: number): Promise<VendorProfile> {
-    return await this.getProfileOrThrow(id);
+  //=========================== GET VENDOR PROFILE BY ID (+ contacts, bank accounts, verification documents, portfolio & logo attachment ids) ======================================
+  async findOne(id: number) {
+    const profile = await this.getProfileOrThrow(id);
+    return await this.buildAggregatedProfile(profile);
   }
   //========================================================================================
 
-  //=========================== GET VENDOR PROFILE BY USER ID (+ contacts, bank accounts, verification documents, portfolio attachment ids) ======================================
+  //=========================== GET VENDOR PROFILE BY USER ID (+ contacts, bank accounts, verification documents, portfolio & logo attachment ids) ======================================
   async findByUserId(userId: number) {
     return await this.getAggregatedProfile(userId);
   }
@@ -366,34 +368,55 @@ export class VendorProfileService {
   }
   //========================================================================================
 
-  //============================ HELPER: AGREGASI PROFILE + CONTACTS + BANK ACCOUNTS + VERIFICATION DOCUMENTS + PORTFOLIO ==============================
-  // Attachment (portfolio & dokumen verifikasi) cuma dikirim sebagai id — file aslinya di-load
-  // terpisah dari frontend lewat GET /attachments/:id/file (blob), bukan di-embed di sini.
+  //============================ HELPER: AGREGASI PROFILE + CONTACTS + BANK ACCOUNTS + VERIFICATION DOCUMENTS + PORTFOLIO (by user id) ==============================
   private async getAggregatedProfile(userId: number) {
     const profile = await this.getProfileEntityByUserId(userId);
+    return await this.buildAggregatedProfile(profile);
+  }
+  //========================================================================================
 
-    const [contacts, bankAccounts, verificationDocuments, portfolioAttachments] =
-      await Promise.all([
-        this.contactsService.findAllByUser(userId, {
-          pageNumber: 1,
-          pageSize: 100,
-        }),
-        this.bankAccountsService.findAllByUser(userId, {
-          pageNumber: 1,
-          pageSize: 100,
-        }),
-        this.verificationDocumentsService.findAllByUser(userId, {
-          pageNumber: 1,
-          pageSize: 100,
-        }),
-        this.attachmentService.findAll({
-          referenceTable: VENDOR_PROFILE_REFERENCE_TABLE,
-          referenceId: profile.id,
-          category: PORTFOLIO_ATTACHMENT_CATEGORY,
-          pageNumber: 1,
-          pageSize: 100,
-        }),
-      ]);
+  //============================ HELPER: SUSUN PROFILE + CONTACTS + BANK ACCOUNTS + VERIFICATION DOCUMENTS + PORTFOLIO + LOGO ==============================
+  // Attachment (portfolio, logo, & dokumen verifikasi) cuma dikirim sebagai id — file aslinya
+  // di-load terpisah dari frontend lewat GET /attachments/:id/file (blob), bukan di-embed di sini.
+  // Dipakai bersama oleh findOne (by id) dan findByUserId agar bentuk responsnya konsisten dan
+  // sejalan dengan field yang diterima save-draft/submit (categories, contacts, bankAccount, verificationDocuments).
+  private async buildAggregatedProfile(profile: VendorProfile) {
+    const userId = profile.user.id;
+
+    const [
+      contacts,
+      bankAccounts,
+      verificationDocuments,
+      portfolioAttachments,
+      logoAttachments,
+    ] = await Promise.all([
+      this.contactsService.findAllByUser(userId, {
+        pageNumber: 1,
+        pageSize: 100,
+      }),
+      this.bankAccountsService.findAllByUser(userId, {
+        pageNumber: 1,
+        pageSize: 100,
+      }),
+      this.verificationDocumentsService.findAllByUser(userId, {
+        pageNumber: 1,
+        pageSize: 100,
+      }),
+      this.attachmentService.findAll({
+        referenceTable: VENDOR_PROFILE_REFERENCE_TABLE,
+        referenceId: profile.id,
+        category: PORTFOLIO_ATTACHMENT_CATEGORY,
+        pageNumber: 1,
+        pageSize: 100,
+      }),
+      this.attachmentService.findAll({
+        referenceTable: VENDOR_PROFILE_REFERENCE_TABLE,
+        referenceId: profile.id,
+        category: LOGO_ATTACHMENT_CATEGORY,
+        pageNumber: 1,
+        pageSize: 1,
+      }),
+    ]);
 
     const verificationDocumentsWithAttachment = await Promise.all(
       verificationDocuments.data.map(async (document) => {
@@ -419,6 +442,7 @@ export class VendorProfileService {
       bankAccounts: bankAccounts.data,
       verificationDocuments: verificationDocumentsWithAttachment,
       portfolioAttachmentIds: portfolioAttachments.data.map((attachment) => attachment.id),
+      logoAttachmentId: logoAttachments.data[0]?.id ?? null,
     };
   }
   //========================================================================================

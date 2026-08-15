@@ -46,6 +46,12 @@ const sampleProfile = {
   budgetPriorities: ['Catering', 'Venue'],
 };
 
+const sampleAggregatedProfile = {
+  ...sampleProfile,
+  // Cuma id attachment yang dikirim — file aslinya di-load dari frontend lewat GET /attachments/:id/file (blob).
+  avatarAttachmentId: '15',
+};
+
 const saveCustomerProfileBodySchema = {
   type: 'object',
   required: ['userId', 'fullName'],
@@ -145,14 +151,18 @@ export function ApiGetAllCustomerProfile() {
 
 export function ApiGetCustomerProfileById() {
   return applyDecorators(
-    ApiOperation({ summary: 'Get Customer Profile By Id' }),
+    ApiOperation({
+      summary: 'Get Customer Profile By Id',
+      description:
+        'Mengembalikan customer profile beserta avatarAttachmentId, selaras dengan field yang diterima save-draft/submit. Attachment hanya dikirim sebagai id — file aslinya di-load terpisah lewat GET /attachments/:id/file (blob).',
+    }),
     ApiOkResponse({
       description: 'Berhasil mengambil data customer profile berdasarkan id',
       schema: {
         example: {
           statusCode: 200,
           message: 'Success Get Customer Profile By Id',
-          data: sampleProfile,
+          data: sampleAggregatedProfile,
         },
       },
     }),
@@ -171,14 +181,18 @@ export function ApiGetCustomerProfileById() {
 
 export function ApiGetCustomerProfileByUserId() {
   return applyDecorators(
-    ApiOperation({ summary: 'Get Customer Profile By User Id' }),
+    ApiOperation({
+      summary: 'Get Customer Profile By User Id',
+      description:
+        'Mengembalikan customer profile beserta avatarAttachmentId, selaras dengan field yang diterima save-draft/submit. Attachment hanya dikirim sebagai id — file aslinya di-load terpisah lewat GET /attachments/:id/file (blob).',
+    }),
     ApiOkResponse({
       description: 'Berhasil mengambil data customer profile berdasarkan user id',
       schema: {
         example: {
           statusCode: 200,
           message: 'Success Get Customer Profile By User Id',
-          data: sampleProfile,
+          data: sampleAggregatedProfile,
         },
       },
     }),
@@ -292,7 +306,7 @@ export function ApiSaveDraftCustomerProfile() {
         example: {
           statusCode: 201,
           message: 'Success Save Draft Customer Profile',
-          data: { ...sampleProfile, status: 1 },
+          data: { ...sampleAggregatedProfile, status: 1 },
         },
       },
     }),
@@ -323,7 +337,7 @@ export function ApiSubmitCustomerProfile() {
         example: {
           statusCode: 201,
           message: 'Success Submit Customer Profile',
-          data: { ...sampleProfile, status: 2 },
+          data: { ...sampleAggregatedProfile, status: 2 },
         },
       },
     }),
