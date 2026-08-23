@@ -135,15 +135,95 @@ export class VendorProfileService {
   }
   //========================================================================================
 
-  //=========================== UPDATE VENDOR PROFILE ======================================
-  async update(id: number, dto: UpdateVendorProfileDto): Promise<VendorProfile> {
+  //=========================== UPDATE VENDOR PROFILE (pure update, status tidak berubah) ======================================
+  // Sama seperti saveOrSubmit (partial field assign + replace contacts + upsert rekening utama +
+  // tambah dokumen verifikasi + replace/hapus portofolio), tapi tidak mengubah status dan tidak
+  // melakukan upsert — profile harus sudah ada (dicari lewat :id).
+  async update(
+    id: number,
+    dto: UpdateVendorProfileDto,
+    files: SaveVendorProfileFiles,
+    actorUserId: string | null,
+  ) {
+    const existingProfile = await this.getProfileOrThrow(id);
+    const userId = existingProfile.user.id;
 
-    const profile = await this.getProfileOrThrow(id);
+    const { profile, verificationDocuments } =
+      await this.dataSource.transaction(async (manager) => {
+        const vendorProfileRepo = manager.getRepository(VendorProfile);
+        const vendorProfile = await vendorProfileRepo.findOne({
+          where: { id },
+        });
+        if (!vendorProfile) {
+          throw new NotFoundException('Vendor profile not found');
+        }
 
-    Object.assign(profile, dto);
-    profile.updatedAt = new Date();
+        const fields = {
+          businessName: dto.businessName,
+          ownerName: dto.ownerName,
+          businessEmail: dto.businessEmail,
+          businessPhone: dto.businessPhone,
+          businessAddress: dto.businessAddress,
+          city: dto.city,
+          province: dto.province,
+          latitude: dto.latitude,
+          longitude: dto.longitude,
+          description: dto.description,
+          serviceArea: dto.serviceArea,
+          logoUrl: dto.logoUrl,
+          active: dto.active,
+          categories: dto.categories?.length
+            ? dto.categories.join(',')
+            : undefined,
+        };
 
-    return await this.vendorProfileRepository.save(profile);
+        Object.assign(
+          vendorProfile,
+          Object.fromEntries(
+            Object.entries(fields).filter(([, value]) => value !== undefined),
+          ),
+        );
+        vendorProfile.updatedAt = new Date();
+
+        const savedProfile = await vendorProfileRepo.save(vendorProfile);
+
+        await this.contactsService.replaceForUser(
+          userId,
+          dto.contacts ?? [],
+          manager,
+        );
+
+        if (dto.bankAccount) {
+          await this.bankAccountsService.upsertPrimaryForUser(
+            userId,
+            dto.bankAccount,
+            manager,
+          );
+        }
+
+        const savedDocuments =
+          await this.verificationDocumentsService.createManyForUser(
+            userId,
+            dto.verificationDocuments ?? [],
+            manager,
+          );
+
+        return { profile: savedProfile, verificationDocuments: savedDocuments };
+      });
+
+    await this.replacePortfolioAttachments(
+      profile.id,
+      files.portfolioImages ?? [],
+      actorUserId,
+      dto.removePortfolioImages ?? false,
+    );
+    await this.attachVerificationDocumentFiles(
+      verificationDocuments,
+      files.verificationDocumentFiles ?? [],
+      actorUserId,
+    );
+
+    return await this.getAggregatedProfile(userId);
   }
   //========================================================================================
 
@@ -278,6 +358,7 @@ export class VendorProfileService {
       profile.id,
       files.portfolioImages ?? [],
       actorUserId,
+      dto.removePortfolioImages ?? false,
     );
     await this.attachVerificationDocumentFiles(
       verificationDocuments,
@@ -289,13 +370,17 @@ export class VendorProfileService {
   }
   //========================================================================================
 
-  //============================ HELPER: GANTI SEMUA ATTACHMENT PORTOFOLIO ==============================
+  //============================ HELPER: GANTI / HAPUS SEMUA ATTACHMENT PORTOFOLIO ==============================
+  // removeExisting=true tanpa file baru akan menghapus semua gambar portofolio lama tanpa
+  // menggantinya — kalau file baru dikirim, upload baru selalu menggantikan semua yang lama
+  // terlepas dari nilai removeExisting (sama seperti replaceAvatarAttachment di customer-profile).
   private async replacePortfolioAttachments(
     vendorProfileId: number,
     files: Express.Multer.File[],
     actorUserId: string | null,
+    removeExisting = false,
   ): Promise<void> {
-    if (!files.length) {
+    if (!files.length && !removeExisting) {
       return;
     }
 

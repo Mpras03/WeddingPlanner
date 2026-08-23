@@ -2,6 +2,7 @@ import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { Transform, Type } from 'class-transformer';
 import {
   IsArray,
+  IsBoolean,
   IsDateString,
   IsIn,
   IsInt,
@@ -171,4 +172,14 @@ export class SaveCustomerProfileDto {
   @IsArray()
   @IsString({ each: true })
   budgetPriorities?: string[];
+
+  @ApiPropertyOptional({
+    description:
+      'Hapus foto profil yang ada tanpa menggantinya dengan foto baru. Diabaikan kalau avatarPhoto turut dikirim (upload baru selalu menggantikan yang lama).',
+    example: false,
+  })
+  @IsOptional()
+  @Transform(parseIfJsonString)
+  @IsBoolean()
+  removeAvatarPhoto?: boolean;
 }

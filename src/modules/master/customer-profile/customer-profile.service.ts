@@ -130,15 +130,63 @@ export class CustomerProfileService {
   }
   //========================================================================================
 
-  //=========================== UPDATE CUSTOMER PROFILE ======================================
-  async update(id: number, dto: UpdateCustomerProfileDto): Promise<CustomerProfile> {
-
+  //=========================== UPDATE CUSTOMER PROFILE (pure update, status tidak berubah) ======================================
+  // Sama seperti saveOrSubmit (partial field assign + replace foto profil), tapi tidak
+  // mengubah status dan tidak melakukan upsert — profile harus sudah ada (dicari lewat :id).
+  async update(
+    id: number,
+    dto: UpdateCustomerProfileDto,
+    files: SaveCustomerProfileFiles,
+    actorUserId: string | null,
+  ) {
     const profile = await this.getProfileOrThrow(id);
 
-    Object.assign(profile, dto);
+    const fields = {
+      fullName: dto.fullName,
+      gender: dto.gender,
+      birthDate: dto.birthDate,
+      address: dto.address,
+      city: dto.city,
+      province: dto.province,
+      active: dto.active,
+      weddingDate: dto.weddingDate,
+      eventType: dto.eventType,
+      weddingProvince: dto.weddingProvince,
+      weddingCity: dto.weddingCity,
+      weddingLocation: dto.weddingLocation,
+      weddingTheme: dto.weddingTheme,
+      estimatedGuests: dto.estimatedGuests,
+      preferredVendorLocation: dto.preferredVendorLocation,
+      packagePreference: dto.packagePreference,
+      neededVendorCategories: dto.neededVendorCategories?.length
+        ? dto.neededVendorCategories.join(',')
+        : undefined,
+      estimatedBudget: dto.estimatedBudget,
+      budgetRangeMin: dto.budgetRangeMin,
+      budgetRangeMax: dto.budgetRangeMax,
+      budgetPriorities: dto.budgetPriorities?.length
+        ? dto.budgetPriorities.join(',')
+        : undefined,
+    };
+
+    Object.assign(
+      profile,
+      Object.fromEntries(
+        Object.entries(fields).filter(([, value]) => value !== undefined),
+      ),
+    );
     profile.modifiedAt = new Date();
 
-    return await this.customerProfileRepository.save(profile);
+    await this.customerProfileRepository.save(profile);
+
+    await this.replaceAvatarAttachment(
+      profile.id,
+      files.avatarPhoto?.[0],
+      actorUserId,
+      dto.removeAvatarPhoto ?? false,
+    );
+
+    return await this.findOne(profile.id);
   }
   //========================================================================================
 
@@ -218,11 +266,15 @@ export class CustomerProfileService {
         estimatedGuests: dto.estimatedGuests,
         preferredVendorLocation: dto.preferredVendorLocation,
         packagePreference: dto.packagePreference,
-        neededVendorCategories: dto.neededVendorCategories,
+        neededVendorCategories: dto.neededVendorCategories?.length
+          ? dto.neededVendorCategories.join(',')
+          : undefined,
         estimatedBudget: dto.estimatedBudget,
         budgetRangeMin: dto.budgetRangeMin,
         budgetRangeMax: dto.budgetRangeMax,
-        budgetPriorities: dto.budgetPriorities,
+        budgetPriorities: dto.budgetPriorities?.length
+          ? dto.budgetPriorities.join(',')
+          : undefined,
       };
 
       if (!customerProfile) {
@@ -251,23 +303,28 @@ export class CustomerProfileService {
       profile.id,
       files.avatarPhoto?.[0],
       actorUserId,
+      dto.removeAvatarPhoto ?? false,
     );
 
     return await this.findByUserId(dto.userId);
   }
   //========================================================================================
 
-  //============================ HELPER: GANTI FOTO PROFIL (AVATAR) ==============================
+  //============================ HELPER: GANTI / HAPUS FOTO PROFIL (AVATAR) ==============================
   // Mengikuti pola replacePortfolioAttachments di vendor-profile: attachment lama untuk kategori
   // ini dihapus, lalu file baru diupload lewat AttachmentService (generic, referenceTable/referenceId/category).
   // Id attachment-nya baru didapat lewat buildAggregatedProfile (avatarAttachmentId), bukan disimpan
   // sebagai URL di kolom avatarUrl — sama seperti logoUrl vendor yang tidak disentuh oleh upload logo.
+  // removeExisting=true tanpa file baru akan menghapus foto lama tanpa menggantinya (mis. user
+  // menghapus foto profilnya tanpa upload foto baru) — kalau file baru dikirim, upload baru selalu
+  // menggantikan yang lama terlepas dari nilai removeExisting.
   private async replaceAvatarAttachment(
     customerProfileId: number,
     file: Express.Multer.File | undefined,
     actorUserId: string | null,
+    removeExisting = false,
   ): Promise<void> {
-    if (!file) {
+    if (!file && !removeExisting) {
       return;
     }
 
@@ -287,6 +344,10 @@ export class CustomerProfileService {
           `Gagal menghapus foto profil lama ${attachment.id}: ${error.message}`,
         );
       }
+    }
+
+    if (!file) {
+      return;
     }
 
     try {
@@ -322,6 +383,12 @@ export class CustomerProfileService {
 
     return {
       ...profile,
+      neededVendorCategories: profile.neededVendorCategories
+        ? profile.neededVendorCategories.split(',')
+        : [],
+      budgetPriorities: profile.budgetPriorities
+        ? profile.budgetPriorities.split(',')
+        : [],
       avatarAttachmentId: avatarAttachments.data[0]?.id ?? null,
     };
   }

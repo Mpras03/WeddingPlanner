@@ -104,8 +104,21 @@ const saveCustomerProfileBodySchema = {
       format: 'binary',
       description: 'File foto profil (opsional, menggantikan foto lama bila diisi)',
     },
+    removeAvatarPhoto: {
+      type: 'boolean',
+      example: false,
+      description:
+        'Hapus foto profil yang ada tanpa menggantinya dengan foto baru. Diabaikan kalau avatarPhoto turut dikirim.',
+    },
   },
 };
+
+// Sama seperti saveCustomerProfileBodySchema, tapi tanpa userId (profile sudah diidentifikasi lewat :id).
+const updateCustomerProfileBodyProperties = Object.fromEntries(
+  Object.entries(saveCustomerProfileBodySchema.properties).filter(
+    ([key]) => key !== 'userId',
+  ),
+);
 
 export function ApiGetAllCustomerProfile() {
   return applyDecorators(
@@ -247,7 +260,20 @@ export function ApiCreateCustomerProfile() {
 
 export function ApiUpdateCustomerProfile() {
   return applyDecorators(
-    ApiOperation({ summary: 'Update Customer Profile' }),
+    ApiOperation({
+      summary: 'Update Customer Profile',
+      description:
+        'Pure update data customer profile (data pribadi, alamat, detail pernikahan, foto profil) tanpa mengubah status — mirip mekanisme save-draft, tapi hanya untuk profile yang sudah ada (dicari lewat :id) dan tidak melakukan upsert.',
+    }),
+    ApiBody({
+      schema: {
+        type: 'object',
+        properties: {
+          ...updateCustomerProfileBodyProperties,
+          active: { type: 'boolean', example: true },
+        },
+      },
+    }),
     ApiOkResponse({
       description: 'Berhasil mengupdate customer profile',
       schema: {

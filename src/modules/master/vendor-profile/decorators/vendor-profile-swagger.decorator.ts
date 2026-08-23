@@ -134,8 +134,21 @@ const saveVendorProfileBodySchema = {
       description:
         'File dokumen verifikasi, urutannya dipasangkan dengan array verificationDocuments',
     },
+    removePortfolioImages: {
+      type: 'boolean',
+      example: false,
+      description:
+        'Hapus semua gambar portofolio yang ada tanpa menggantinya dengan gambar baru. Diabaikan kalau portfolioImages turut dikirim.',
+    },
   },
 };
+
+// Sama seperti saveVendorProfileBodySchema, tapi tanpa userId (profile sudah diidentifikasi lewat :id).
+const updateVendorProfileBodyProperties = Object.fromEntries(
+  Object.entries(saveVendorProfileBodySchema.properties).filter(
+    ([key]) => key !== 'userId',
+  ),
+);
 
 export function ApiGetAllVendorProfile() {
   return applyDecorators(
@@ -277,7 +290,20 @@ export function ApiCreateVendorProfile() {
 
 export function ApiUpdateVendorProfile() {
   return applyDecorators(
-    ApiOperation({ summary: 'Update Vendor Profile' }),
+    ApiOperation({
+      summary: 'Update Vendor Profile',
+      description:
+        'Pure update data vendor profile (kategori, portofolio, kontak, rekening utama, dokumen verifikasi) tanpa mengubah status — mirip mekanisme save-draft, tapi hanya untuk profile yang sudah ada (dicari lewat :id) dan tidak melakukan upsert.',
+    }),
+    ApiBody({
+      schema: {
+        type: 'object',
+        properties: {
+          ...updateVendorProfileBodyProperties,
+          active: { type: 'boolean', example: true },
+        },
+      },
+    }),
     ApiOkResponse({
       description: 'Berhasil mengupdate vendor profile',
       schema: {
@@ -285,9 +311,7 @@ export function ApiUpdateVendorProfile() {
           statusCode: 200,
           message: 'Success Update Vendor Profile',
           data: {
-            ...sampleVendorProfile,
-            status: 2,
-            isVerified: true,
+            ...sampleAggregatedVendorProfile,
             updatedAt: '2026-08-01T11:00:00.000Z',
           },
         },

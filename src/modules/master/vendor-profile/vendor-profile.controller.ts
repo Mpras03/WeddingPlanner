@@ -119,12 +119,17 @@ export class VendorProfileController {
 
   @Put(':id')
   @ResponseMessage("Success Update Vendor Profile")
+  @UseInterceptors(SAVE_VENDOR_PROFILE_FILE_FIELDS)
+  @ApiConsumes('multipart/form-data')
   @ApiUpdateVendorProfile()
   update(
     @Param('id', ParseIntPipe) id: number,
     @Body() dto: UpdateVendorProfileDto,
+    @UploadedFiles() files: { portfolioImages?: Express.Multer.File[]; verificationDocumentFiles?: Express.Multer.File[] },
+    @Req() request: Request,
   ) {
-    return this.vendorProfileService.update(id, dto);
+    const user = request.user as any;
+    return this.vendorProfileService.update(id, dto, files ?? {}, user?.userId ?? null);
   }
 
   @Delete(':id')

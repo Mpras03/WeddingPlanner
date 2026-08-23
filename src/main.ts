@@ -45,7 +45,13 @@ async function bootstrap() {
 
   const document = SwaggerModule.createDocument(app, config);
 
-  SwaggerModule.setup('api', app, document);
+  // tagsSorter: 'alpha' membuat daftar module di Swagger UI terurut abjad (A-Z),
+  // tanpa perlu mengubah urutan import module di AppModule atau @ApiTags per controller.
+  SwaggerModule.setup('api', app, document, {
+    swaggerOptions: {
+      tagsSorter: 'alpha',
+    },
+  });
 
   await app.listen(process.env.PORT ?? 3000);
 

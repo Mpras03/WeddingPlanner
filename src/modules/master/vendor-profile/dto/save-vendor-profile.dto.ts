@@ -3,6 +3,7 @@ import { Transform, Type } from 'class-transformer';
 import {
   ArrayMaxSize,
   IsArray,
+  IsBoolean,
   IsEmail,
   IsInt,
   IsNotEmpty,
@@ -27,7 +28,8 @@ function parseIfJsonString({ value }: { value: unknown }): unknown {
   }
 }
 
-class VendorContactItemDto {
+// Diexport supaya bisa dipakai ulang di UpdateVendorProfileDto tanpa duplikasi rule validasi.
+export class VendorContactItemDto {
   @ApiProperty({ example: 'WhatsApp' })
   @IsString()
   @IsNotEmpty()
@@ -41,7 +43,7 @@ class VendorContactItemDto {
   contactValue: string;
 }
 
-class VendorBankAccountItemDto {
+export class VendorBankAccountItemDto {
   @ApiProperty({ example: 'BCA' })
   @IsString()
   @IsNotEmpty()
@@ -61,7 +63,7 @@ class VendorBankAccountItemDto {
   accountHolderName: string;
 }
 
-class VendorVerificationDocumentItemDto {
+export class VendorVerificationDocumentItemDto {
   @ApiProperty({ example: 'NIB' })
   @IsString()
   @IsNotEmpty()
@@ -205,4 +207,14 @@ export class SaveVendorProfileDto {
   @Type(() => VendorVerificationDocumentItemDto)
   @ArrayMaxSize(20)
   verificationDocuments?: VendorVerificationDocumentItemDto[];
+
+  @ApiPropertyOptional({
+    description:
+      'Hapus semua gambar portofolio yang ada tanpa menggantinya dengan gambar baru. Diabaikan kalau portfolioImages turut dikirim (upload baru selalu menggantikan semua yang lama).',
+    example: false,
+  })
+  @IsOptional()
+  @Transform(parseIfJsonString)
+  @IsBoolean()
+  removePortfolioImages?: boolean;
 }

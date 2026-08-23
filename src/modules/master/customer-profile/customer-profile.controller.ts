@@ -118,12 +118,17 @@ export class CustomerProfileController {
 
   @Put(':id')
   @ResponseMessage("Success Update Customer Profile")
+  @UseInterceptors(SAVE_CUSTOMER_PROFILE_FILE_FIELDS)
+  @ApiConsumes('multipart/form-data')
   @ApiUpdateCustomerProfile()
   update(
     @Param('id', ParseIntPipe) id: number,
     @Body() dto: UpdateCustomerProfileDto,
+    @UploadedFiles() files: { avatarPhoto?: Express.Multer.File[] },
+    @Req() request: Request,
   ) {
-    return this.customerProfileService.update(id, dto);
+    const user = request.user as any;
+    return this.customerProfileService.update(id, dto, files ?? {}, user?.userId ?? null);
   }
 
   @Delete(':id')

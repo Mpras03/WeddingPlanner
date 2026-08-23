@@ -173,10 +173,11 @@ export class CustomerProfile {
 
   @Column({
     name: 'needed_vendor_categories',
-    type: 'jsonb',
+    type: 'varchar',
+    length: 500,
     nullable: true,
   })
-  neededVendorCategories: string[] | null;
+  neededVendorCategories: string | null;
 
   @Column({
     name: 'estimated_budget',
@@ -204,9 +205,10 @@ export class CustomerProfile {
 
   @Column({
     name: 'budget_priorities',
-    type: 'jsonb',
+    type: 'varchar',
+    length: 500,
     nullable: true,
   })
-  budgetPriorities: string[] | null;
+  budgetPriorities: string | null;
 
 }
