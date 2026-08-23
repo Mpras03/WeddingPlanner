@@ -14,6 +14,7 @@ import { ParameterModule } from './modules/master/parameter/parameter.module';
 import { ContactsModule } from './modules/master/contacts/contacts.module';
 import { BankAccountsModule } from './modules/master/bank-accounts/bank-accounts.module';
 import { VerificationDocumentsModule } from './modules/master/verification-documents/verification-documents.module';
+import { VendorProductsModule } from './modules/master/vendor-products/vendor-products.module';
 
 @Module({
   imports: [
@@ -58,6 +59,8 @@ import { VerificationDocumentsModule } from './modules/master/verification-docum
     BankAccountsModule,
 
     VerificationDocumentsModule,
+
+    VendorProductsModule,
   ],
   controllers: [],
   providers: [],
