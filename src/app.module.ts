@@ -17,6 +17,7 @@ import { VerificationDocumentsModule } from './modules/master/verification-docum
 import { VendorProductsModule } from './modules/master/vendor-products/vendor-products.module';
 import { OrdersModule } from './modules/public/orders/orders.module';
 import { OrderPaymentsModule } from './modules/public/order-payments/order-payments.module';
+import { VendorProductReviewsModule } from './modules/public/vendor-product-reviews/vendor-product-reviews.module';
 
 @Module({
   imports: [
@@ -67,6 +68,8 @@ import { OrderPaymentsModule } from './modules/public/order-payments/order-payme
     OrdersModule,
 
     OrderPaymentsModule,
+
+    VendorProductReviewsModule,
   ],
   controllers: [],
   providers: [],
