@@ -1,8 +1,14 @@
-import { Injectable, Logger, NotFoundException } from '@nestjs/common';
+import {
+  ConflictException,
+  Injectable,
+  Logger,
+  NotFoundException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { ILike, Repository } from 'typeorm';
 import { VendorProduct } from './entities/vendor-product.entity';
 import { VendorProfile } from '../vendor-profile/entities/vendor-profile.entity';
+import { Order } from '../../public/orders/entities/order.entity';
 import { CreateVendorProductDto } from './dto/create-vendor-product.dto';
 import { UpdateVendorProductDto } from './dto/update-vendor-product.dto';
 import { FindAllVendorProductDto } from './dto/find-all-vendor-product.dto';
@@ -26,6 +32,9 @@ export class VendorProductsService {
 
     @InjectRepository(VendorProfile)
     private readonly vendorProfileRepository: Repository<VendorProfile>,
+
+    @InjectRepository(Order)
+    private readonly orderRepository: Repository<Order>,
 
     private readonly attachmentService: AttachmentService,
   ) {}
@@ -156,8 +165,21 @@ export class VendorProductsService {
   //========================================================================================
 
   //=========================== DELETE VENDOR PRODUCT ======================================
+  // Produk yang sudah punya riwayat pemesanan tidak boleh dihapus — harga/data produk di order
+  // sudah di-snapshot, tapi baris vendor_products-nya sendiri harus tetap ada (juga dijaga oleh
+  // FK orders.vendor_product_id di database, tapi dicek lebih dulu di sini supaya errornya jelas).
   async remove(id: string): Promise<void> {
     const product = await this.getProductOrThrow(id);
+
+    const orderCount = await this.orderRepository.count({
+      where: { vendorProduct: { id } },
+    });
+    if (orderCount > 0) {
+      throw new ConflictException(
+        'Produk ini tidak dapat dihapus karena sudah memiliki riwayat pemesanan',
+      );
+    }
+
     await this.vendorProductRepository.remove(product);
   }
   //========================================================================================

@@ -15,6 +15,8 @@ import { ContactsModule } from './modules/master/contacts/contacts.module';
 import { BankAccountsModule } from './modules/master/bank-accounts/bank-accounts.module';
 import { VerificationDocumentsModule } from './modules/master/verification-documents/verification-documents.module';
 import { VendorProductsModule } from './modules/master/vendor-products/vendor-products.module';
+import { OrdersModule } from './modules/public/orders/orders.module';
+import { OrderPaymentsModule } from './modules/public/order-payments/order-payments.module';
 
 @Module({
   imports: [
@@ -61,6 +63,10 @@ import { VendorProductsModule } from './modules/master/vendor-products/vendor-pr
     VerificationDocumentsModule,
 
     VendorProductsModule,
+
+    OrdersModule,
+
+    OrderPaymentsModule,
   ],
   controllers: [],
   providers: [],
