@@ -1,5 +1,6 @@
 import {
   BadRequestException,
+  ConflictException,
   ForbiddenException,
   Injectable,
   NotFoundException,
@@ -16,13 +17,19 @@ import { Status } from '../../../common/enums/status.enum';
 import { CreateOrderDto } from './dto/create-order.dto';
 import { FindAllOrderDto } from './dto/find-all-order.dto';
 import { RejectOrderDto } from './dto/reject-order.dto';
+import { CancelOrderDto } from './dto/cancel-order.dto';
+import { DisputeOrderDto } from './dto/dispute-order.dto';
+import { ResolveDisputeOrderDto } from './dto/resolve-dispute-order.dto';
 import {
   ORDER_STATUS_TRANSITIONS,
   OrderPaymentType,
   OrderStatus,
 } from './order-status.enum';
 import { OrderPaymentsService } from '../order-payments/order-payments.service';
-import { OrderPaymentInstallment } from '../order-payments/order-payment.enum';
+import {
+  OrderPaymentInstallment,
+  OrderPaymentStatus,
+} from '../order-payments/order-payment.enum';
 
 interface CallerScope {
   customerProfileId: number | null;
@@ -169,18 +176,9 @@ export class OrdersService {
       );
     }
 
-    const bankAccount = await this.bankAccountRepository.findOne({
-      where: {
-        user: { id: vendorProduct.vendor.user.id },
-        active: true,
-        isPrimary: true,
-      },
-    });
-    if (!bankAccount) {
-      throw new BadRequestException(
-        'Vendor belum melengkapi rekening bank utama, tidak bisa menerima pesanan saat ini',
-      );
-    }
+    const bankAccount = await this.getVendorPrimaryBankAccountOrThrow(
+      vendorProduct.vendor.user.id,
+    );
 
     const amount = this.resolvePaymentAmount(dto.paymentType, vendorProduct);
     const createdBy = String(requestUserId);
@@ -268,6 +266,179 @@ export class OrdersService {
   }
   //========================================================================================
 
+  //=========================== MULAI KERJAKAN ORDER (vendor) ======================================
+  async start(id: string, requestUserId: number | null) {
+    const order = await this.getOrderOrThrow(id);
+    await this.assertVendorOwnership(order, requestUserId);
+    this.assertTransition(order.status, OrderStatus.IN_PROGRESS);
+
+    order.status = OrderStatus.IN_PROGRESS;
+    order.modifiedBy = requestUserId !== null ? String(requestUserId) : null;
+    order.modifiedAt = new Date();
+
+    await this.orderRepository.save(order);
+
+    return await this.findOne(order.id, requestUserId);
+  }
+  //========================================================================================
+
+  //=========================== TANDAI LAYANAN SELESAI DIKERJAKAN (vendor, menunggu konfirmasi customer) ======================================
+  async deliver(id: string, requestUserId: number | null) {
+    const order = await this.getOrderOrThrow(id);
+    await this.assertVendorOwnership(order, requestUserId);
+    this.assertTransition(order.status, OrderStatus.WAITING_CUSTOMER_CONFIRMATION);
+
+    order.status = OrderStatus.WAITING_CUSTOMER_CONFIRMATION;
+    order.modifiedBy = requestUserId !== null ? String(requestUserId) : null;
+    order.modifiedAt = new Date();
+
+    await this.orderRepository.save(order);
+
+    return await this.findOne(order.id, requestUserId);
+  }
+  //========================================================================================
+
+  //=========================== SELESAIKAN ORDER (customer mengonfirmasi) ======================================
+  // Kalau total yang sudah PAID belum menutupi totalAmount (mis. pelunasan DP belum diverifikasi),
+  // order belum boleh diselesaikan.
+  async complete(id: string, requestUserId: number | null) {
+    const order = await this.getOrderOrThrow(id);
+    await this.assertCustomerOwnership(order, requestUserId);
+    this.assertTransition(order.status, OrderStatus.COMPLETED);
+
+    const paidAmount = await this.getPaidAmount(order.id);
+    if (paidAmount < order.totalAmount) {
+      throw new BadRequestException(
+        'Masih ada sisa tagihan yang belum lunas, order belum bisa diselesaikan',
+      );
+    }
+
+    order.status = OrderStatus.COMPLETED;
+    order.completedAt = new Date();
+    order.modifiedBy = requestUserId !== null ? String(requestUserId) : null;
+    order.modifiedAt = new Date();
+
+    await this.orderRepository.save(order);
+
+    return await this.findOne(order.id, requestUserId);
+  }
+  //========================================================================================
+
+  //=========================== BATALKAN ORDER (customer) ======================================
+  async cancel(id: string, dto: CancelOrderDto, requestUserId: number | null) {
+    const order = await this.getOrderOrThrow(id);
+    await this.assertCustomerOwnership(order, requestUserId);
+    this.assertTransition(order.status, OrderStatus.CANCELLED);
+
+    order.status = OrderStatus.CANCELLED;
+    order.rejectReason = dto.reason ?? null;
+    order.modifiedBy = requestUserId !== null ? String(requestUserId) : null;
+    order.modifiedAt = new Date();
+
+    await this.orderRepository.save(order);
+
+    return await this.findOne(order.id, requestUserId);
+  }
+  //========================================================================================
+
+  //=========================== AJUKAN SENGKETA (customer ATAU vendor) ======================================
+  async dispute(id: string, dto: DisputeOrderDto, requestUserId: number | null) {
+    const order = await this.getOrderOrThrow(id);
+    await this.assertOwnership(order, requestUserId);
+    this.assertTransition(order.status, OrderStatus.DISPUTED);
+
+    order.status = OrderStatus.DISPUTED;
+    order.rejectReason = dto.reason;
+    order.modifiedBy = requestUserId !== null ? String(requestUserId) : null;
+    order.modifiedAt = new Date();
+
+    await this.orderRepository.save(order);
+
+    return await this.findOne(order.id, requestUserId);
+  }
+  //========================================================================================
+
+  //=========================== SELESAIKAN SENGKETA (admin) ======================================
+  // Endpoint ini masih terbuka untuk siapa saja yang login — belum ada role guard admin di codebase
+  // ini (sama seperti verify/reject pembayaran di OrderPaymentsService).
+  async resolveDispute(id: string, dto: ResolveDisputeOrderDto, requestUserId: number | null) {
+    const order = await this.getOrderOrThrow(id);
+    this.assertTransition(order.status, dto.status);
+
+    order.status = dto.status;
+    if (dto.status === OrderStatus.COMPLETED) {
+      order.completedAt = new Date();
+    }
+    order.rejectReason = dto.note ?? order.rejectReason;
+    order.modifiedBy = requestUserId !== null ? String(requestUserId) : null;
+    order.modifiedAt = new Date();
+
+    await this.orderRepository.save(order);
+
+    return await this.findOne(order.id, requestUserId);
+  }
+  //========================================================================================
+
+  //=========================== BUAT TAGIHAN PELUNASAN (customer, sisa dari DP yang sudah lunas) ======================================
+  // Cuma boleh dibuat sekali per order (satu baris REMAINING), setelah ada pembayaran yang sudah
+  // PAID, dan selama masih ada sisa tagihan. Rekening tujuan di-snapshot ulang dari rekening utama
+  // vendor SAAT INI — bisa beda dari snapshot DP kalau vendor sempat mengganti rekening.
+  async createRemainingPayment(id: string, requestUserId: number | null) {
+    const order = await this.getOrderOrThrow(id);
+    await this.assertCustomerOwnership(order, requestUserId);
+
+    const existingPayments = await this.orderPaymentsService.findAll({
+      orderId: Number(order.id),
+      pageNumber: 1,
+      pageSize: 20,
+    });
+
+    const hasRemainingAlready = existingPayments.data.some(
+      (payment) => payment.installment === (OrderPaymentInstallment.REMAINING as string),
+    );
+    if (hasRemainingAlready) {
+      throw new ConflictException(
+        'Tagihan pelunasan untuk order ini sudah pernah dibuat — kalau sebelumnya ditolak, submit ulang bukti transfer lewat endpoint proof',
+      );
+    }
+
+    const paidAmount = existingPayments.data
+      .filter((payment) => payment.status === (OrderPaymentStatus.PAID as string))
+      .reduce((sum, payment) => sum + payment.amount, 0);
+    if (paidAmount <= 0) {
+      throw new BadRequestException('Belum ada pembayaran yang lunas untuk order ini');
+    }
+
+    const remainingAmount = order.totalAmount - paidAmount;
+    if (remainingAmount <= 0) {
+      throw new BadRequestException('Order ini sudah lunas, tidak perlu pelunasan lagi');
+    }
+
+    const vendorProfile = await this.vendorProfileRepository.findOne({
+      where: { id: order.vendor.id },
+      relations: { user: true },
+    });
+    if (!vendorProfile) {
+      throw new NotFoundException('Vendor profile not found');
+    }
+
+    const bankAccount = await this.getVendorPrimaryBankAccountOrThrow(vendorProfile.user.id);
+
+    await this.orderPaymentsService.createForOrder({
+      orderId: order.id,
+      installment: OrderPaymentInstallment.REMAINING,
+      amount: remainingAmount,
+      bankAccountId: bankAccount.id,
+      bankName: bankAccount.bankName,
+      accountNumber: bankAccount.accountNumber,
+      accountHolderName: bankAccount.accountHolderName,
+      actorUserId: requestUserId !== null ? String(requestUserId) : null,
+    });
+
+    return await this.findOne(order.id, requestUserId);
+  }
+  //========================================================================================
+
   //============================ HELPER: VALIDASI TRANSISI STATUS (ORDER_STATUS_TRANSITIONS) ==============================
   private assertTransition(from: string, to: OrderStatus): void {
     const allowed = ORDER_STATUS_TRANSITIONS[from as OrderStatus] ?? [];
@@ -316,6 +487,47 @@ export class OrdersService {
     if (scope.vendorProfileId === null || scope.vendorProfileId !== order.vendor.id) {
       throw new ForbiddenException('Anda tidak berhak mengubah order ini');
     }
+  }
+  //========================================================================================
+
+  //============================ HELPER: PASTIKAN CALLER ADALAH CUSTOMER PEMILIK ORDER ==============================
+  private async assertCustomerOwnership(order: Order, requestUserId: number | null): Promise<void> {
+    const scope = await this.resolveCallerScope(requestUserId);
+    if (scope.customerProfileId === null || scope.customerProfileId !== order.customer.id) {
+      throw new ForbiddenException('Anda tidak berhak mengubah order ini');
+    }
+  }
+  //========================================================================================
+
+  //============================ HELPER: CARI REKENING UTAMA VENDOR (dipakai create & pelunasan) ==============================
+  private async getVendorPrimaryBankAccountOrThrow(vendorUserId: number): Promise<BankAccount> {
+    const bankAccount = await this.bankAccountRepository.findOne({
+      where: {
+        user: { id: vendorUserId },
+        active: true,
+        isPrimary: true,
+      },
+    });
+    if (!bankAccount) {
+      throw new BadRequestException(
+        'Vendor belum melengkapi rekening bank utama, tidak bisa menerima pesanan saat ini',
+      );
+    }
+    return bankAccount;
+  }
+  //========================================================================================
+
+  //============================ HELPER: HITUNG TOTAL YANG SUDAH PAID UNTUK ORDER INI ==============================
+  private async getPaidAmount(orderId: string): Promise<number> {
+    const payments = await this.orderPaymentsService.findAll({
+      orderId: Number(orderId),
+      pageNumber: 1,
+      pageSize: 20,
+    });
+
+    return payments.data
+      .filter((payment) => payment.status === (OrderPaymentStatus.PAID as string))
+      .reduce((sum, payment) => sum + payment.amount, 0);
   }
   //========================================================================================
 

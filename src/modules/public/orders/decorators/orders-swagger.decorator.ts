@@ -7,6 +7,7 @@ import {
   ApiCreatedResponse,
   ApiBadRequestResponse,
   ApiForbiddenResponse,
+  ApiConflictResponse,
   ApiNotFoundResponse,
 } from '@nestjs/swagger';
 import { OrderPaymentType, OrderStatus } from '../order-status.enum';
@@ -353,5 +354,293 @@ export function ApiRejectOrder() {
         },
       },
     }),
+  );
+}
+
+const orderNotFoundResponse = ApiNotFoundResponse({
+  description: 'Order tidak ditemukan',
+  schema: {
+    example: {
+      statusCode: 404,
+      message: 'Order not found',
+      error: 'Not Found',
+    },
+  },
+});
+
+const orderTransitionBadRequestResponse = ApiBadRequestResponse({
+  description: 'Order tidak sedang berada di status yang bisa berpindah ke status tujuan',
+  schema: {
+    example: {
+      statusCode: 400,
+      message: 'Order tidak bisa berpindah dari status CONFIRMED ke IN_PROGRESS',
+      error: 'Bad Request',
+    },
+  },
+});
+
+export function ApiStartOrder() {
+  return applyDecorators(
+    ApiOperation({
+      summary: 'Mulai Kerjakan Order (vendor)',
+      description: 'Vendor menandai order mulai dikerjakan (CONFIRMED → IN_PROGRESS).',
+    }),
+    ApiOkResponse({
+      description: 'Berhasil memulai order',
+      schema: {
+        example: {
+          statusCode: 200,
+          message: 'Success Start Order',
+          data: { ...sampleAggregatedOrder, status: OrderStatus.IN_PROGRESS },
+        },
+      },
+    }),
+    orderTransitionBadRequestResponse,
+    ApiForbiddenResponse({
+      description: 'Caller bukan vendor penerima order ini',
+      schema: {
+        example: {
+          statusCode: 403,
+          message: 'Anda tidak berhak mengubah order ini',
+          error: 'Forbidden',
+        },
+      },
+    }),
+    orderNotFoundResponse,
+  );
+}
+
+export function ApiDeliverOrder() {
+  return applyDecorators(
+    ApiOperation({
+      summary: 'Tandai Layanan Selesai Dikerjakan (vendor)',
+      description:
+        'Vendor menandai layanan sudah selesai dikerjakan, menunggu konfirmasi customer (IN_PROGRESS → WAITING_CUSTOMER_CONFIRMATION).',
+    }),
+    ApiOkResponse({
+      description: 'Berhasil menandai layanan selesai dikerjakan',
+      schema: {
+        example: {
+          statusCode: 200,
+          message: 'Success Deliver Order',
+          data: { ...sampleAggregatedOrder, status: OrderStatus.WAITING_CUSTOMER_CONFIRMATION },
+        },
+      },
+    }),
+    orderTransitionBadRequestResponse,
+    ApiForbiddenResponse({
+      description: 'Caller bukan vendor penerima order ini',
+      schema: {
+        example: {
+          statusCode: 403,
+          message: 'Anda tidak berhak mengubah order ini',
+          error: 'Forbidden',
+        },
+      },
+    }),
+    orderNotFoundResponse,
+  );
+}
+
+export function ApiCompleteOrder() {
+  return applyDecorators(
+    ApiOperation({
+      summary: 'Selesaikan Order (customer mengonfirmasi)',
+      description:
+        'Customer mengonfirmasi layanan diterima dengan baik (WAITING_CUSTOMER_CONFIRMATION → COMPLETED). Ditolak kalau masih ada sisa tagihan yang belum lunas.',
+    }),
+    ApiOkResponse({
+      description: 'Berhasil menyelesaikan order',
+      schema: {
+        example: {
+          statusCode: 200,
+          message: 'Success Complete Order',
+          data: { ...sampleAggregatedOrder, status: OrderStatus.COMPLETED, completedAt: '2026-08-03T10:00:00.000Z' },
+        },
+      },
+    }),
+    ApiBadRequestResponse({
+      description: 'Order belum berada di status yang tepat, atau masih ada sisa tagihan yang belum lunas',
+      schema: {
+        example: {
+          statusCode: 400,
+          message: 'Masih ada sisa tagihan yang belum lunas, order belum bisa diselesaikan',
+          error: 'Bad Request',
+        },
+      },
+    }),
+    ApiForbiddenResponse({
+      description: 'Caller bukan customer pemilik order ini',
+      schema: {
+        example: {
+          statusCode: 403,
+          message: 'Anda tidak berhak mengubah order ini',
+          error: 'Forbidden',
+        },
+      },
+    }),
+    orderNotFoundResponse,
+  );
+}
+
+export function ApiCancelOrder() {
+  return applyDecorators(
+    ApiOperation({
+      summary: 'Batalkan Order (customer)',
+      description: 'Customer membatalkan order miliknya sendiri (PENDING_PAYMENT atau CONFIRMED → CANCELLED).',
+    }),
+    ApiBody({
+      schema: {
+        type: 'object',
+        properties: {
+          reason: { type: 'string', example: 'Berubah rencana, tidak jadi menggunakan vendor ini' },
+        },
+      },
+    }),
+    ApiOkResponse({
+      description: 'Berhasil membatalkan order',
+      schema: {
+        example: {
+          statusCode: 200,
+          message: 'Success Cancel Order',
+          data: { ...sampleAggregatedOrder, status: OrderStatus.CANCELLED },
+        },
+      },
+    }),
+    orderTransitionBadRequestResponse,
+    ApiForbiddenResponse({
+      description: 'Caller bukan customer pemilik order ini',
+      schema: {
+        example: {
+          statusCode: 403,
+          message: 'Anda tidak berhak mengubah order ini',
+          error: 'Forbidden',
+        },
+      },
+    }),
+    orderNotFoundResponse,
+  );
+}
+
+export function ApiDisputeOrder() {
+  return applyDecorators(
+    ApiOperation({
+      summary: 'Ajukan Sengketa (customer atau vendor)',
+      description:
+        'Customer atau vendor pemilik order mengajukan sengketa (CONFIRMED/IN_PROGRESS/WAITING_CUSTOMER_CONFIRMATION → DISPUTED).',
+    }),
+    ApiBody({
+      schema: {
+        type: 'object',
+        required: ['reason'],
+        properties: {
+          reason: { type: 'string', example: 'Vendor tidak hadir sesuai jadwal yang disepakati' },
+        },
+      },
+    }),
+    ApiOkResponse({
+      description: 'Berhasil mengajukan sengketa',
+      schema: {
+        example: {
+          statusCode: 200,
+          message: 'Success Dispute Order',
+          data: { ...sampleAggregatedOrder, status: OrderStatus.DISPUTED, rejectReason: 'Vendor tidak hadir sesuai jadwal yang disepakati' },
+        },
+      },
+    }),
+    orderTransitionBadRequestResponse,
+    ApiForbiddenResponse({
+      description: 'Caller bukan customer pemilik order maupun vendor penerima order ini',
+      schema: {
+        example: {
+          statusCode: 403,
+          message: 'Anda tidak berhak mengakses order ini',
+          error: 'Forbidden',
+        },
+      },
+    }),
+    orderNotFoundResponse,
+  );
+}
+
+export function ApiResolveDisputeOrder() {
+  return applyDecorators(
+    ApiOperation({
+      summary: 'Selesaikan Sengketa (admin)',
+      description: 'Menutup sengketa (DISPUTED → COMPLETED atau CANCELLED, tergantung hasil mediasi).',
+    }),
+    ApiBody({
+      schema: {
+        type: 'object',
+        required: ['status'],
+        properties: {
+          status: { type: 'string', enum: [OrderStatus.COMPLETED, OrderStatus.CANCELLED], example: OrderStatus.COMPLETED },
+          note: { type: 'string', example: 'Vendor sudah menyelesaikan kewajiban sesuai kesepakatan, sengketa ditutup' },
+        },
+      },
+    }),
+    ApiOkResponse({
+      description: 'Berhasil menyelesaikan sengketa',
+      schema: {
+        example: {
+          statusCode: 200,
+          message: 'Success Resolve Order Dispute',
+          data: { ...sampleAggregatedOrder, status: OrderStatus.COMPLETED },
+        },
+      },
+    }),
+    orderTransitionBadRequestResponse,
+    orderNotFoundResponse,
+  );
+}
+
+export function ApiCreateRemainingPayment() {
+  return applyDecorators(
+    ApiOperation({
+      summary: 'Buat Tagihan Pelunasan (customer)',
+      description:
+        'Membuat installment REMAINING senilai sisa tagihan (totalAmount dikurangi jumlah yang sudah PAID), dengan rekening tujuan di-snapshot ulang dari rekening utama vendor saat ini. Cuma bisa dibuat sekali per order.',
+    }),
+    ApiCreatedResponse({
+      description: 'Berhasil membuat tagihan pelunasan',
+      schema: {
+        example: {
+          statusCode: 201,
+          message: 'Success Create Remaining Payment',
+          data: sampleAggregatedOrder,
+        },
+      },
+    }),
+    ApiBadRequestResponse({
+      description: 'Belum ada pembayaran yang lunas, atau order sudah lunas sepenuhnya',
+      schema: {
+        example: {
+          statusCode: 400,
+          message: 'Order ini sudah lunas, tidak perlu pelunasan lagi',
+          error: 'Bad Request',
+        },
+      },
+    }),
+    ApiForbiddenResponse({
+      description: 'Caller bukan customer pemilik order ini',
+      schema: {
+        example: {
+          statusCode: 403,
+          message: 'Anda tidak berhak mengubah order ini',
+          error: 'Forbidden',
+        },
+      },
+    }),
+    ApiConflictResponse({
+      description: 'Tagihan pelunasan untuk order ini sudah pernah dibuat',
+      schema: {
+        example: {
+          statusCode: 409,
+          message: 'Tagihan pelunasan untuk order ini sudah pernah dibuat — kalau sebelumnya ditolak, submit ulang bukti transfer lewat endpoint proof',
+          error: 'Conflict',
+        },
+      },
+    }),
+    orderNotFoundResponse,
   );
 }
