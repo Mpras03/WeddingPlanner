@@ -30,6 +30,15 @@ export class FindAllVendorProductReviewDto {
   @IsInt()
   customerId?: number;
 
+  @ApiPropertyOptional({
+    description: 'Filter berdasarkan id order yang diulas',
+    example: 1,
+  })
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  orderId?: number;
+
   @ApiPropertyOptional({ description: 'Filter berdasarkan rating persis (1-5)', example: 5 })
   @IsOptional()
   @Type(() => Number)

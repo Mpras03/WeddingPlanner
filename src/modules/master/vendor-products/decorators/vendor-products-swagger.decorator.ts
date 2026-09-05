@@ -37,6 +37,11 @@ const sampleAggregatedVendorProduct = {
   ...sampleVendorProduct,
   // Cuma id attachment yang dikirim — file aslinya di-load dari frontend lewat GET /attachments/:id/file (blob).
   imageAttachmentIds: ['20', '21'],
+  // averageRating & reviewCount cuma dihitung dari ulasan yang active=true.
+  // soldCount dihitung dari order berstatus COMPLETED untuk produk ini.
+  averageRating: 4.75,
+  reviewCount: 8,
+  soldCount: 12,
 };
 
 const vendorProductBodySchema = {

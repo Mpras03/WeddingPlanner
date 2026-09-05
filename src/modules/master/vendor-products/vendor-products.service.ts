@@ -9,6 +9,8 @@ import { ILike, Repository } from 'typeorm';
 import { VendorProduct } from './entities/vendor-product.entity';
 import { VendorProfile } from '../vendor-profile/entities/vendor-profile.entity';
 import { Order } from '../../public/orders/entities/order.entity';
+import { OrderStatus } from '../../public/orders/order-status.enum';
+import { VendorProductReview } from '../../public/vendor-product-reviews/entities/vendor-product-review.entity';
 import { CreateVendorProductDto } from './dto/create-vendor-product.dto';
 import { UpdateVendorProductDto } from './dto/update-vendor-product.dto';
 import { FindAllVendorProductDto } from './dto/find-all-vendor-product.dto';
@@ -35,6 +37,9 @@ export class VendorProductsService {
 
     @InjectRepository(Order)
     private readonly orderRepository: Repository<Order>,
+
+    @InjectRepository(VendorProductReview)
+    private readonly vendorProductReviewRepository: Repository<VendorProductReview>,
 
     private readonly attachmentService: AttachmentService,
   ) {}
@@ -66,12 +71,12 @@ export class VendorProductsService {
       take: pageSize,
     });
 
-    const dataWithImages = await Promise.all(
-      data.map((product) => this.attachImageIds(product)),
+    const aggregatedData = await Promise.all(
+      data.map((product) => this.aggregateProduct(product)),
     );
 
     return {
-      data: dataWithImages,
+      data: aggregatedData,
       total,
       pageNumber,
       pageSize,
@@ -82,7 +87,7 @@ export class VendorProductsService {
   //=========================== GET VENDOR PRODUCT BY ID (+ image attachment ids) ======================================
   async findOne(id: string) {
     const product = await this.getProductOrThrow(id);
-    return await this.attachImageIds(product);
+    return await this.aggregateProduct(product);
   }
   //========================================================================================
 
@@ -237,22 +242,45 @@ export class VendorProductsService {
   }
   //========================================================================================
 
-  //============================ HELPER: SUSUN PRODUCT + IMAGE ATTACHMENT IDS ==============================
+  //============================ HELPER: SUSUN PRODUCT + IMAGE ATTACHMENT IDS + STATISTIK ULASAN/PENJUALAN ==============================
   // Attachment gambar produk cuma dikirim sebagai id — file aslinya di-load terpisah dari frontend
-  // lewat GET /attachments/:id/file (blob), bukan di-embed di sini. Dipakai bersama oleh findAll,
-  // findOne, create, dan update supaya bentuk responsnya selalu konsisten.
-  private async attachImageIds(product: VendorProduct) {
-    const images = await this.attachmentService.findAll({
-      referenceTable: VENDOR_PRODUCT_REFERENCE_TABLE,
-      referenceId: Number(product.id),
-      category: PRODUCT_IMAGE_ATTACHMENT_CATEGORY,
-      pageNumber: 1,
-      pageSize: 100,
-    });
+  // lewat GET /attachments/:id/file (blob), bukan di-embed di sini. averageRating/reviewCount cuma
+  // dihitung dari ulasan yang active=true (ulasan yang dinonaktifkan/dimoderasi tidak ikut dihitung).
+  // soldCount dihitung dari order berstatus COMPLETED untuk produk ini. Dipakai bersama oleh
+  // findAll, findOne, create, dan update supaya bentuk responsnya selalu konsisten.
+  private async aggregateProduct(product: VendorProduct) {
+    const [images, activeReviews, soldCount] = await Promise.all([
+      this.attachmentService.findAll({
+        referenceTable: VENDOR_PRODUCT_REFERENCE_TABLE,
+        referenceId: Number(product.id),
+        category: PRODUCT_IMAGE_ATTACHMENT_CATEGORY,
+        pageNumber: 1,
+        pageSize: 100,
+      }),
+      this.vendorProductReviewRepository.find({
+        where: { vendorProduct: { id: product.id }, active: true },
+      }),
+      this.orderRepository.count({
+        where: { vendorProduct: { id: product.id }, status: OrderStatus.COMPLETED },
+      }),
+    ]);
+
+    const reviewCount = activeReviews.length;
+    const averageRating =
+      reviewCount > 0
+        ? Number(
+            (
+              activeReviews.reduce((sum, review) => sum + review.rating, 0) / reviewCount
+            ).toFixed(2),
+          )
+        : 0;
 
     return {
       ...product,
       imageAttachmentIds: images.data.map((attachment) => attachment.id),
+      averageRating,
+      reviewCount,
+      soldCount,
     };
   }
   //========================================================================================

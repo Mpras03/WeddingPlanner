@@ -90,6 +90,13 @@ export function ApiFindAllVendorProductReview() {
       example: 1,
     }),
     ApiQuery({
+      name: 'orderId',
+      required: false,
+      type: Number,
+      description: 'Filter berdasarkan id order yang diulas',
+      example: 1,
+    }),
+    ApiQuery({
       name: 'rating',
       required: false,
       type: Number,
@@ -111,7 +118,8 @@ export function ApiFindAllVendorProductReview() {
       example: 10,
     }),
     ApiOkResponse({
-      description: 'Berhasil mengambil semua data ulasan dengan pagination',
+      description:
+        'Berhasil mengambil semua data ulasan dengan pagination. ratingBreakdown menghitung jumlah ulasan per bintang (1-5) mengikuti filter yang sama (minus filter rating itu sendiri), cuma dari ulasan yang active=true.',
       schema: {
         example: {
           statusCode: 200,
@@ -121,6 +129,7 @@ export function ApiFindAllVendorProductReview() {
             total: 1,
             pageNumber: 1,
             pageSize: 10,
+            ratingBreakdown: { 1: 0, 2: 0, 3: 1, 4: 2, 5: 5 },
           },
         },
       },

@@ -5,6 +5,7 @@ import { VendorProductsController } from './vendor-products.controller';
 import { VendorProduct } from './entities/vendor-product.entity';
 import { VendorProfile } from '../vendor-profile/entities/vendor-profile.entity';
 import { Order } from '../../public/orders/entities/order.entity';
+import { VendorProductReview } from '../../public/vendor-product-reviews/entities/vendor-product-review.entity';
 import { AttachmentModule } from '../attachment/attachment.module';
 
 @Module({
@@ -13,6 +14,7 @@ import { AttachmentModule } from '../attachment/attachment.module';
       VendorProduct,
       VendorProfile,
       Order,
+      VendorProductReview,
     ]),
     AttachmentModule,
   ],

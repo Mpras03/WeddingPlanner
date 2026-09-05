@@ -7,7 +7,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { FindOptionsWhere, Repository } from 'typeorm';
 import { VendorProductReview } from './entities/vendor-product-review.entity';
 import { Order } from '../orders/entities/order.entity';
 import { OrderStatus } from '../orders/order-status.enum';
@@ -43,19 +43,25 @@ export class VendorProductReviewsService {
 
   //=========================== GET ALL VENDOR PRODUCT REVIEW (PAGINATION) ======================================
   // Ulasan bersifat publik (dipakai buat ditampilkan di halaman detail produk ke semua orang),
-  // jadi endpoint ini tidak discope ke caller sendiri — beda dengan orders yang privat.
+  // jadi endpoint ini tidak discope ke caller sendiri — beda dengan orders yang privat. Cuma ulasan
+  // active=true yang ditampilkan/dihitung — ulasan yang dinonaktifkan/dimoderasi disembunyikan
+  // sepenuhnya (baik dari listing maupun dari ratingBreakdown).
   async findAll(query: FindAllVendorProductReviewDto) {
 
-    const { vendorProductId, vendorId, customerId, rating, pageNumber = 1, pageSize = 10 } = query;
+    const { vendorProductId, vendorId, customerId, orderId, rating, pageNumber = 1, pageSize = 10 } = query;
+
+    const baseWhere: FindOptionsWhere<VendorProductReview> = {
+      active: true,
+      ...(vendorProductId ? { vendorProduct: { id: String(vendorProductId) } } : {}),
+      ...(vendorId ? { vendor: { id: vendorId } } : {}),
+      ...(customerId ? { customer: { id: customerId } } : {}),
+      ...(orderId ? { order: { id: String(orderId) } } : {}),
+    };
 
     const [data, total] = await this.vendorProductReviewRepository.findAndCount({
-      where: {
-        ...(vendorProductId ? { vendorProduct: { id: String(vendorProductId) } } : {}),
-        ...(vendorId ? { vendor: { id: vendorId } } : {}),
-        ...(customerId ? { customer: { id: customerId } } : {}),
-        ...(rating ? { rating } : {}),
-      },
+      where: { ...baseWhere, ...(rating ? { rating } : {}) },
       relations: {
+        order: true,
         customer: true,
         vendor: true,
         vendorProduct: true,
@@ -71,11 +77,16 @@ export class VendorProductReviewsService {
       data.map((review) => this.attachImageIds(review)),
     );
 
+    // ratingBreakdown pakai filter yang sama minus `rating` itu sendiri, supaya breakdown selalu
+    // menunjukkan distribusi 1-5 bintang yang selaras dengan hasil listing yang sedang ditampilkan.
+    const ratingBreakdown = await this.computeRatingBreakdown(baseWhere);
+
     return {
       data: dataWithImages,
       total,
       pageNumber,
       pageSize,
+      ratingBreakdown,
     };
   }
   //========================================================================================
@@ -175,6 +186,25 @@ export class VendorProductReviewsService {
   }
   //========================================================================================
 
+  //============================ HELPER: HITUNG JUMLAH ULASAN PER BINTANG (1-5) ==============================
+  private async computeRatingBreakdown(
+    baseWhere: FindOptionsWhere<VendorProductReview>,
+  ): Promise<Record<1 | 2 | 3 | 4 | 5, number>> {
+    const reviews = await this.vendorProductReviewRepository.find({
+      where: baseWhere,
+    });
+
+    const breakdown: Record<1 | 2 | 3 | 4 | 5, number> = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 };
+    for (const review of reviews) {
+      const rating = review.rating as 1 | 2 | 3 | 4 | 5;
+      if (breakdown[rating] !== undefined) {
+        breakdown[rating] += 1;
+      }
+    }
+    return breakdown;
+  }
+  //========================================================================================
+
   //============================ HELPER: SUSUN REVIEW + IMAGE ATTACHMENT IDS ==============================
   private async attachImageIds(review: VendorProductReview) {
     const images = await this.attachmentService.findAll({
@@ -195,7 +225,7 @@ export class VendorProductReviewsService {
   private async getReviewOrThrow(id: string): Promise<VendorProductReview> {
     const review = await this.vendorProductReviewRepository.findOne({
       where: { id },
-      relations: { customer: true, vendor: true, vendorProduct: true },
+      relations: { order: true, customer: true, vendor: true, vendorProduct: true },
     });
 
     if (!review) {
